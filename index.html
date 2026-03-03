@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Juego Impostor 2</title>
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+
+<!-- ====================================================
+     SCREEN 1 — SETUP
+     ==================================================== -->
+<section class="screen active" id="screen-setup">
+  <div class="setup-scroll">
+    <div class="container">
+      <div class="logo">Juego Impostor</div>
+      <div class="logo-sub">Encuentra al impostor entre vosotros</div>
+
+      <!-- Player Count -->
+      <div class="card">
+        <div class="card-title">Número de jugadores</div>
+        <div class="pill-group" id="player-count-pills"></div>
+      </div>
+
+      <!-- Player Names -->
+      <div class="card">
+        <div class="card-title">Nombres de los jugadores</div>
+        <div id="player-names-container"></div>
+      </div>
+
+      <!-- Word Mode -->
+      <div class="card">
+        <div class="card-title">Palabras</div>
+        <div class="tab-group">
+          <button class="tab active" data-mode="random">Aleatorio</button>
+          <button class="tab" data-mode="category">Categoría</button>
+          <button class="tab" data-mode="write">Personalizado</button>
+        </div>
+
+        <!-- Panel: Aleatorio -->
+        <div class="word-panel active" id="panel-random">
+          <p style="font-size:0.85rem;color:var(--text-muted)">Se elegirá una palabra al azar de cualquier categoría disponible.</p>
+        </div>
+
+        <!-- Panel: Categoría -->
+        <div class="word-panel" id="panel-category">
+          <div class="input-group">
+            <label class="input-label">Selecciona una categoría</label>
+            <select id="category-select"></select>
+          </div>
+        </div>
+
+        <!-- Panel: Personalizado -->
+        <div class="word-panel" id="panel-write">
+          <div class="input-group">
+            <label class="input-label">Palabras (una por línea)</label>
+            <textarea id="custom-words-textarea" placeholder="Perro&#10;Gato&#10;Pájaro&#10;..."></textarea>
+          </div>
+          <button id="btn-generate-hints" class="btn btn-ai">✨ Generar pistas con IA</button>
+          <div id="hints-loading" class="hidden ai-loading">Generando pistas…</div>
+          <div id="hints-table-wrap"></div>
+          <div id="save-list-row">
+            <input type="text" id="list-name-input" placeholder="Nombre de la lista" />
+            <button id="btn-save-list" class="btn btn-ghost">Guardar</button>
+          </div>
+          <div id="load-list-row">
+            <select id="saved-lists-select"></select>
+            <div class="load-list-btns">
+              <button id="btn-load-list" class="btn btn-ghost">Cargar</button>
+              <button id="btn-delete-list" class="btn btn-ghost">Eliminar</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Hint Difficulty -->
+      <div class="card">
+        <div class="card-title">Dificultad de la pista</div>
+        <div class="hint-group">
+          <button class="hint-pill active" data-hint="none">Sin pista</button>
+          <button class="hint-pill" data-hint="easy">Pista fácil</button>
+          <button class="hint-pill" data-hint="hard">Pista difícil</button>
+        </div>
+      </div>
+
+      <!-- Impostor Mode -->
+      <div class="card">
+        <div class="card-title">Modo impostor</div>
+        <div class="pill-group impostor-mode-opts" style="margin-bottom:10px">
+          <button class="pill active" data-impostor-mode="auto">Normal (auto)</button>
+          <button class="pill" data-impostor-mode="libre">Libre</button>
+        </div>
+        <div id="auto-impostor-display" style="font-size:0.8rem;color:var(--text-muted);margin-bottom:4px">Auto: 1 impostor</div>
+        <div id="impostor-libre-row" class="hidden">
+          <label class="input-label" style="margin-bottom:6px;display:block">Número de impostores</label>
+          <div class="slider-container">
+            <input type="range" id="impostor-slider" min="1" max="4" value="1" />
+            <span class="slider-val" id="impostor-slider-val">1</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- Timer -->
+      <div class="card">
+        <div class="card-title">Temporizador</div>
+        <div class="toggle-row" style="margin-bottom:12px">
+          <div>
+            <div class="toggle-label">Activar temporizador</div>
+            <div class="toggle-sub">Cuenta atrás para el tiempo de discusión</div>
+          </div>
+          <label class="toggle">
+            <input type="checkbox" id="timer-toggle" />
+            <span class="toggle-slider"></span>
+          </label>
+        </div>
+        <div id="timer-stepper-wrap" class="hidden">
+          <div class="input-label" style="margin-bottom:6px">Minutos de discusión</div>
+          <div class="stepper">
+            <button class="stepper-btn" id="timer-dec">−</button>
+            <span class="stepper-val" id="timer-val">3</span>
+            <button class="stepper-btn" id="timer-inc">+</button>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary" id="btn-start">Iniciar Juego →</button>
+    </div><!-- /container -->
+  </div><!-- /setup-scroll -->
+</section>
+
+<!-- ====================================================
+     SCREEN 2 — ROLE ASSIGNMENT
+     ==================================================== -->
+<section class="screen" id="screen-roles">
+  <div class="container">
+    <div class="screen-header">
+      <div class="screen-title">Asignación de Roles</div>
+      <div class="screen-subtitle" id="role-progress-label">Jugador 1 de 5</div>
+    </div>
+
+    <div class="progress-bar-wrap">
+      <div class="progress-bar-fill" id="role-progress-fill" style="width:0%"></div>
+    </div>
+
+    <p style="text-align:center;font-size:1rem;font-weight:600;margin-bottom:16px;color:var(--cyan)" id="role-player-name">Jugador 1</p>
+
+    <div class="card-3d-scene">
+      <div class="card-3d" id="role-card-3d">
+        <!-- Front face -->
+        <div class="card-face card-face-front">
+          <img id="role-cover-img" class="card-cover-img" src="" alt="" aria-hidden="true" />
+          <div class="card-front-content">
+            <div class="tap-icon">👆</div>
+            <div class="tap-text" id="role-tap-text">Toca para revelar tu rol</div>
+          </div>
+        </div>
+        <!-- Back face -->
+        <div class="card-face card-face-back" id="role-card-back"></div>
+      </div>
+    </div>
+
+    <button class="btn btn-primary" id="btn-role-next" disabled>Pasar al siguiente</button>
+  </div>
+</section>
+
+<!-- ====================================================
+     SCREEN 3 — GAME / TIMER
+     ==================================================== -->
+<section class="screen" id="screen-game">
+  <div class="container">
+    <div class="screen-header">
+      <div class="screen-title">¡A Jugar!</div>
+      <div class="screen-subtitle">Discute con los demás y encuentra al impostor</div>
+    </div>
+
+    <!-- Timer ring -->
+    <div id="timer-ring-section">
+      <div class="timer-ring-wrap">
+        <svg class="timer-svg" width="180" height="180" viewBox="0 0 180 180">
+          <defs>
+            <linearGradient id="timerGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#e040fb" />
+              <stop offset="100%" stop-color="#00e5ff" />
+            </linearGradient>
+          </defs>
+          <circle class="timer-track" cx="90" cy="90" r="70" />
+          <circle class="timer-prog" id="timer-progress-circle" cx="90" cy="90" r="70" />
+        </svg>
+        <div class="timer-text-group">
+          <div class="timer-display" id="timer-display">03:00</div>
+          <div class="timer-label">Tiempo restante</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- No-timer note -->
+    <div id="no-timer-note" class="hidden" style="text-align:center;margin-bottom:20px">
+      <span class="no-timer-badge">⏱ Sin límite de tiempo</span>
+    </div>
+
+    <!-- Controls -->
+    <div class="timer-controls">
+      <button class="btn btn-secondary" id="btn-pause">Pausar</button>
+      <button class="btn btn-primary" id="btn-go-voting" style="margin-top:0">Ir a Votación</button>
+    </div>
+
+    <!-- Players -->
+    <div class="card">
+      <div class="card-title">Jugadores en partida</div>
+      <div class="player-chips" id="game-player-chips"></div>
+    </div>
+  </div>
+</section>
+
+<!-- ====================================================
+     SCREEN 4 — VOTING
+     ==================================================== -->
+<section class="screen" id="screen-voting">
+  <div class="container">
+    <div class="screen-header">
+      <div class="screen-title">Votación</div>
+      <div class="screen-subtitle">Toca los jugadores que crees que son impostores</div>
+    </div>
+
+    <div class="vote-grid" id="vote-grid"></div>
+
+    <button class="btn btn-danger" id="btn-reveal">Revelar Impostor(es) →</button>
+  </div>
+</section>
+
+<!-- ====================================================
+     SCREEN 5 — RESULTS
+     ==================================================== -->
+<section class="screen" id="screen-results">
+  <div class="container">
+    <div class="results-header">
+      <div class="results-outcome" id="results-outcome">¡Fin de la partida!</div>
+      <div class="results-desc" id="results-desc"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">Los impostores eran…</div>
+      <div class="impostors-list" id="impostors-list"></div>
+    </div>
+
+    <div class="secret-word-card">
+      <div class="secret-word-label">La palabra secreta era</div>
+      <div class="secret-word-value" id="secret-word-value">—</div>
+      <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px" id="secret-category"></div>
+    </div>
+
+    <button class="btn btn-primary" id="btn-play-again">Jugar de Nuevo</button>
+  </div>
+</section>
+
+<!-- ====================================================
+     GLOBAL OVERLAYS
+     ==================================================== -->
+<canvas id="confetti-canvas"></canvas>
+<div id="flash-overlay"></div>
+
+<script src="data.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

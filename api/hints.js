@@ -1,0 +1,38 @@
+export default async function handler(req, res) {
+  if (req.method !== 'POST') {
+    return res.status(405).json({ error: 'Method not allowed' });
+  }
+
+  const { words } = req.body;
+  if (!words || !Array.isArray(words) || words.length === 0) {
+    return res.status(400).json({ error: 'words array is required' });
+  }
+
+  const prompt =
+    `Eres un generador de pistas para un juego. Para cada palabra de la lista, genera:\n` +
+    `- pista_facil: UNA sola palabra, relación indirecta con la palabra original\n` +
+    `- pista_dificil: UNA sola palabra, relación muy vaga o sorprendente\n\n` +
+    `Responde ÚNICAMENTE con JSON válido, sin texto extra:\n` +
+    `[{"word":"X","easy":"...","hard":"..."},...]\n\n` +
+    `Palabras: ${words.join(', ')}`;
+
+  const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${process.env.OPENAI_KEY}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+    }),
+  });
+
+  if (!openaiRes.ok) {
+    const err = await openaiRes.text();
+    return res.status(502).json({ error: `OpenAI error: ${openaiRes.status}`, detail: err });
+  }
+
+  const data = await openaiRes.json();
+  return res.status(200).json(data);
+}
