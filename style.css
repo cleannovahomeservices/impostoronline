@@ -502,7 +502,6 @@ input[type="range"]::-webkit-slider-thumb {
 
 /* ===== ROLE CARD FLIP ===== */
 .card-3d-scene {
-  perspective: 1000px;
   width: 100%;
   max-width: 400px;
   height: 300px;
@@ -513,12 +512,22 @@ input[type="range"]::-webkit-slider-thumb {
   width: 100%;
   height: 100%;
   position: relative;
-  transform-style: preserve-3d;
-  transition: transform 0.7s cubic-bezier(0.4, 0, 0.2, 1);
   cursor: pointer;
 }
 
-.card-3d.flipped { transform: rotateY(180deg); }
+@keyframes flipOut {
+  from { transform: scaleX(1); }
+  to   { transform: scaleX(0); }
+}
+
+@keyframes flipIn {
+  from { transform: scaleX(0); }
+  to   { transform: scaleX(1); }
+}
+
+.card-3d.flipped .card-face-front {
+  animation: flipOut 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
+}
 
 .card-face {
   position: absolute;
@@ -528,8 +537,6 @@ input[type="range"]::-webkit-slider-thumb {
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  backface-visibility: hidden;
-  -webkit-backface-visibility: hidden;
   padding: 24px;
   text-align: center;
 }
@@ -582,9 +589,14 @@ input[type="range"]::-webkit-slider-thumb {
   backdrop-filter: blur(4px);
 }
 
-/* Back face — role reveal */
+/* Back face — hidden until JS adds .flip-visible after the front animates out */
 .card-face-back {
-  transform: rotateY(180deg);
+  display: none;
+}
+
+.card-face-back.flip-visible {
+  display: flex;
+  animation: flipIn 0.35s cubic-bezier(0.4, 0, 0.2, 1) forwards;
 }
 
 .card-face-back.role-jugador {
@@ -902,11 +914,67 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 /* ===== RESPONSIVE ===== */
+
+/* --- 480px: setup scroll, save/load rows, hints table, AI panel --- */
+@media (max-width: 480px) {
+  /* Give setup cards breathing room on small screens */
+  .setup-scroll { padding: 0 4px; }
+  .screen { padding: 16px 12px 48px; }
+
+  /* Stack save row vertically */
+  #save-list-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  #save-list-row input { width: 100%; }
+  #save-list-row .btn { width: 100%; }
+
+  /* Stack load row vertically */
+  #load-list-row {
+    flex-direction: column;
+    align-items: stretch;
+  }
+  #load-list-row select { width: 100%; }
+
+  /* Load-list buttons: two full-width buttons side by side */
+  .load-list-btns {
+    flex-shrink: unset;
+    width: 100%;
+  }
+  .load-list-btns .btn {
+    flex: 1;
+    white-space: normal;
+    text-align: center;
+  }
+
+  /* Hints table: smaller font, word column wraps */
+  #hints-table-wrap { font-size: 0.78rem; }
+  .hints-table { font-size: 0.78rem; }
+  .hints-table .word-cell {
+    white-space: normal;
+    word-break: break-word;
+    font-size: 0.78rem;
+  }
+
+  /* Pill/hint groups wrap cleanly */
+  .pill-group,
+  .hint-group,
+  .impostor-mode-opts { gap: 6px; }
+  .pill, .hint-pill { font-size: 0.88rem; padding: 7px 13px; }
+}
+
+/* --- 420px: typography, timer, vote grid, role card --- */
 @media (max-width: 420px) {
   .logo { font-size: 1.6rem; }
   .timer-display { font-size: 2.8rem; }
   .vote-grid { grid-template-columns: repeat(2, 1fr); }
-  .card-3d-scene { height: 240px; }
+
+  /* Role card scene: shorter so it fits without scrolling */
+  .card-3d-scene { height: 220px; }
+  .role-title { font-size: 1.3rem; }
+  .role-word { font-size: 0.95rem; }
+  .card-face-front .tap-icon { font-size: 2rem; }
+  .card-face-front .tap-text { font-size: 0.85rem; }
 }
 
 /* ===== NO TIMER mode ===== */

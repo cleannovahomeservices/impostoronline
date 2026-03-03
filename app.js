@@ -407,7 +407,7 @@ function renderRoleCard() {
   const card3d = document.getElementById('role-card-3d');
   card3d.classList.remove('flipped');
 
-  // Reset back face to neutral (will be set on flip)
+  // Reset back face to neutral (hidden until flip phase 2)
   const backFace = document.getElementById('role-card-back');
   backFace.className = 'card-face card-face-back';
   backFace.innerHTML = '';
@@ -417,12 +417,15 @@ function renderRoleCard() {
   nextBtn.disabled = true;
   nextBtn.textContent = idx === total - 1 ? 'Comenzar Juego' : `Pasar a ${gameState.players[idx + 1] || '...'}`;
 
-  // Card flip handler
+  // Card flip handler — phase 1: front scales out; phase 2 (after 350ms): back scales in
   card3d.onclick = () => {
     if (card3d.classList.contains('flipped')) return;
     card3d.classList.add('flipped');
-    renderBackFace(backFace, idx);
-    nextBtn.disabled = false;
+    setTimeout(() => {
+      renderBackFace(backFace, idx);
+      backFace.classList.add('flip-visible');
+      nextBtn.disabled = false;
+    }, 350);
   };
 
   // Tap hint on front face
