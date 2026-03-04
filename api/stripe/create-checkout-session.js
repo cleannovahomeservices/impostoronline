@@ -18,7 +18,9 @@ export default async function handler(req, res) {
       line_items: [{ price: process.env.STRIPE_PRICE_ID, quantity: 1 }],
       client_reference_id: playerId,
       metadata: { playerId },
-      success_url: `${process.env.APP_URL}/?checkout=success`,
+      // {CHECKOUT_SESSION_ID} is replaced by Stripe with the real session id.
+      // The frontend uses it to retrieve the customer email after payment.
+      success_url: `${process.env.APP_URL}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,
       cancel_url:  `${process.env.APP_URL}/?checkout=cancel`,
     });
 

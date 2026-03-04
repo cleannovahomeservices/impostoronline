@@ -52,6 +52,38 @@ function updatePremiumUI() {
 }
 
 /* ─── Poll for premium after checkout (webhook may take a few seconds) ─── */
+// Called when the user lands back from Stripe with ?checkout=success&session_id=cs_...
+// Resolves session → email → stores email as the persistent playerId → checks premium.
+async function handleCheckoutSuccess(sessionId) {
+  try {
+    const res         = await fetch(`/api/stripe/verify?sessionId=${encodeURIComponent(sessionId)}`);
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) throw new Error(`HTTP ${res.status}`);
+
+    const data = await res.json();
+
+    if (data.email) {
+      // Persist email as the device's playerId so future status checks match Supabase
+      localStorage.setItem('playerId', data.email);
+      console.log('[premium] email stored as playerId:', data.email);
+    }
+
+    if (data.premium) {
+      premiumState.premium = data.premium;
+      premiumState.until   = data.until;
+      premiumState.checked = true;
+      updatePremiumUI();
+      showPremiumToast('¡Premium activado! Bienvenido ⭐');
+      return;
+    }
+  } catch (err) {
+    console.warn('[premium] verify endpoint failed, falling back to poll:', err);
+  }
+
+  // Fallback: webhook might still be in flight — poll by the stored playerId
+  await pollPremiumAfterCheckout();
+}
+
 async function pollPremiumAfterCheckout(maxAttempts = 6, intervalMs = 2000) {
   for (let i = 0; i < maxAttempts; i++) {
     await new Promise(r => setTimeout(r, intervalMs));
@@ -895,7 +927,13 @@ document.addEventListener('DOMContentLoaded', () => {
   if (params.get('checkout') === 'success') {
     // Clean URL without a reload
     history.replaceState(null, '', window.location.pathname);
-    // Poll until webhook has updated Supabase (usually < 4 s)
-    pollPremiumAfterCheckout();
+    const sessionId = params.get('session_id');
+    if (sessionId) {
+      // Use the session id to resolve the customer email and confirm premium
+      handleCheckoutSuccess(sessionId);
+    } else {
+      // Legacy fallback (no session_id in URL)
+      pollPremiumAfterCheckout();
+    }
   }
 });
