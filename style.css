@@ -1251,6 +1251,63 @@ input[type="range"]::-webkit-slider-thumb {
   color: var(--text-muted);
 }
 
+/* ── Premium recovery row ── */
+.premium-recover {
+  margin-top: 16px;
+  padding-top: 14px;
+  border-top: 1px solid var(--border);
+}
+
+.premium-recover-label {
+  font-size: 0.78rem;
+  color: var(--text-muted);
+  margin-bottom: 8px;
+}
+
+.premium-recover-row {
+  display: flex;
+  gap: 8px;
+}
+
+.premium-recover-row input {
+  flex: 1;
+  font-size: 0.85rem;
+  padding: 9px 12px;
+  border-radius: var(--radius-sm);
+  background: var(--card-bg-2);
+  border: 1px solid var(--border);
+  color: var(--text);
+  font-family: inherit;
+}
+
+.premium-recover-row input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+
+.btn-recover {
+  padding: 9px 16px;
+  border-radius: var(--radius-sm);
+  background: var(--card-bg-2);
+  border: 1px solid var(--cyan-dim);
+  color: var(--cyan);
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition);
+}
+.btn-recover:hover { background: rgba(0,229,255,0.1); }
+.btn-recover:disabled { opacity: 0.5; cursor: not-allowed; }
+
+.premium-recover-msg {
+  font-size: 0.8rem;
+  margin-top: 8px;
+  font-weight: 600;
+}
+.premium-recover-msg.ok  { color: var(--player-color); }
+.premium-recover-msg.err { color: var(--danger); }
+
 /* Badge shown on premium-locked panel when not subscribed */
 .premium-lock-banner {
   display: flex;

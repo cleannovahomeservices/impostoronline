@@ -10,6 +10,7 @@ function getPlayerId() {
     id = crypto.randomUUID();
     localStorage.setItem('playerId', id);
   }
+  console.log('[premium] playerId activo:', id);
   return id;
 }
 
@@ -22,6 +23,7 @@ const premiumState = {
 
 async function checkPremiumStatus({ silent = false } = {}) {
   const playerId = getPlayerId();
+  console.log('[premium] checkPremiumStatus — usando playerId:', playerId);
   try {
     const res = await fetch(`/api/premium/status?playerId=${encodeURIComponent(playerId)}`);
     const contentType = res.headers.get('content-type') || '';
@@ -166,6 +168,55 @@ function initPremiumModal() {
       console.error('Checkout error:', err);
       btnText.textContent = 'Error — inténtalo de nuevo';
       btn.disabled = false;
+    }
+  });
+
+  /* ── Recovery: check premium by email ── */
+  document.getElementById('btn-premium-recover').addEventListener('click', async () => {
+    const emailInput = document.getElementById('premium-recover-email');
+    const msg        = document.getElementById('premium-recover-msg');
+    const btn        = document.getElementById('btn-premium-recover');
+    const email      = emailInput.value.trim().toLowerCase();
+
+    if (!email || !email.includes('@')) {
+      showRecoverMsg('Introduce un email válido.', 'err');
+      return;
+    }
+
+    btn.disabled     = true;
+    btn.textContent  = '…';
+    msg.className    = 'premium-recover-msg hidden';
+
+    try {
+      console.log('[premium] verificando premium por email:', email);
+      const res = await fetch(`/api/premium/status?playerId=${encodeURIComponent(email)}`);
+      const ct  = res.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) throw new Error(`HTTP ${res.status}`);
+      const data = await res.json();
+
+      if (data.premium) {
+        localStorage.setItem('playerId', email);
+        console.log('[premium] email guardado como playerId:', email);
+        premiumState.premium = true;
+        premiumState.until   = data.until;
+        premiumState.checked = true;
+        updatePremiumUI();
+        hidePremiumModal();
+        showPremiumToast('¡Premium activado! Bienvenido ⭐');
+      } else {
+        showRecoverMsg('No se encontró Premium para ese email.', 'err');
+      }
+    } catch (err) {
+      console.error('[premium] recovery error:', err);
+      showRecoverMsg('Error al verificar. Inténtalo de nuevo.', 'err');
+    } finally {
+      btn.disabled    = false;
+      btn.textContent = 'Verificar';
+    }
+
+    function showRecoverMsg(text, type) {
+      msg.textContent = text;
+      msg.className   = `premium-recover-msg ${type}`;
     }
   });
 }
