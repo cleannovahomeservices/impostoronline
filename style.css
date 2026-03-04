@@ -1118,3 +1118,175 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .hints-ready strong { color: #fff; }
+
+/* ===== PREMIUM MODAL ===== */
+.premium-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.75);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+
+.premium-modal-backdrop.hidden { display: none !important; }
+
+.premium-modal {
+  background: linear-gradient(145deg, #1a1a2e, #16213e);
+  border: 1px solid rgba(224, 64, 251, 0.4);
+  border-radius: 20px;
+  padding: 32px 28px 28px;
+  width: 100%;
+  max-width: 380px;
+  text-align: center;
+  position: relative;
+  box-shadow: 0 0 40px rgba(224, 64, 251, 0.25), 0 20px 60px rgba(0,0,0,0.5);
+  animation: modalIn 0.25s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+}
+
+@keyframes modalIn {
+  from { opacity: 0; transform: scale(0.88) translateY(16px); }
+  to   { opacity: 1; transform: scale(1) translateY(0); }
+}
+
+.premium-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 16px;
+  background: transparent;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1rem;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4px 8px;
+  border-radius: 6px;
+  transition: color var(--transition);
+}
+.premium-modal-close:hover { color: var(--text); }
+
+.premium-modal-icon {
+  font-size: 2.8rem;
+  margin-bottom: 10px;
+  filter: drop-shadow(0 0 12px rgba(224,64,251,0.6));
+}
+
+.premium-modal-title {
+  font-size: 1.4rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, var(--primary), var(--cyan));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin-bottom: 10px;
+}
+
+.premium-modal-desc {
+  font-size: 0.9rem;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+  line-height: 1.5;
+}
+.premium-modal-desc strong { color: var(--text); }
+
+.premium-features {
+  list-style: none;
+  text-align: left;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-sm);
+  padding: 12px 16px;
+  margin-bottom: 20px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.premium-features li {
+  font-size: 0.88rem;
+  color: var(--text);
+}
+
+.premium-price {
+  margin-bottom: 18px;
+}
+
+.premium-price-amount {
+  font-size: 2.2rem;
+  font-weight: 900;
+  color: var(--primary);
+  text-shadow: 0 0 16px rgba(224,64,251,0.5);
+}
+
+.premium-price-period {
+  font-size: 1rem;
+  color: var(--text-muted);
+  font-weight: 400;
+}
+
+.btn-premium-cta {
+  width: 100%;
+  padding: 16px;
+  border-radius: var(--radius);
+  background: linear-gradient(135deg, var(--primary), #c2185b);
+  color: #fff;
+  font-size: 1.05rem;
+  font-weight: 700;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition);
+  box-shadow: var(--shadow-glow);
+  margin-bottom: 12px;
+  letter-spacing: 0.01em;
+}
+.btn-premium-cta:hover  { filter: brightness(1.15); box-shadow: 0 0 30px rgba(224,64,251,0.5); }
+.btn-premium-cta:active { transform: scale(0.97); }
+.btn-premium-cta:disabled { opacity: 0.6; cursor: not-allowed; pointer-events: none; }
+
+.premium-modal-legal {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+}
+
+/* Badge shown on premium-locked panel when not subscribed */
+.premium-lock-banner {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: rgba(224, 64, 251, 0.07);
+  border: 1px solid rgba(224, 64, 251, 0.25);
+  border-radius: var(--radius-sm);
+  padding: 10px 14px;
+  margin-bottom: 12px;
+  font-size: 0.85rem;
+  color: var(--text-muted);
+}
+.premium-lock-banner strong { color: var(--primary); cursor: pointer; text-decoration: underline; }
+
+/* Success toast after premium activation */
+.premium-toast {
+  position: fixed;
+  bottom: 24px;
+  left: 50%;
+  transform: translateX(-50%) translateY(80px);
+  background: linear-gradient(135deg, #1b5e20, #2e7d32);
+  border: 1px solid var(--player-color);
+  border-radius: 50px;
+  padding: 12px 24px;
+  color: #fff;
+  font-size: 0.9rem;
+  font-weight: 600;
+  z-index: 1001;
+  white-space: nowrap;
+  box-shadow: 0 4px 20px rgba(0,200,83,0.4);
+  transition: transform 0.4s cubic-bezier(0.34, 1.56, 0.64, 1), opacity 0.4s;
+  opacity: 0;
+  pointer-events: none;
+}
+.premium-toast.show {
+  transform: translateX(-50%) translateY(0);
+  opacity: 1;
+}

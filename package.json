@@ -4,5 +4,9 @@
   "description": "Juego Impostor Online — party game with AI hints",
   "engines": {
     "node": ">=18"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.98.0",
+    "stripe": "^20.4.0"
   }
 }

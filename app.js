@@ -3,6 +3,127 @@
    All game logic, state management, screen navigation
    ============================================================ */
 
+/* ==================== PLAYER IDENTITY ==================== */
+function getPlayerId() {
+  let id = localStorage.getItem('playerId');
+  if (!id) {
+    id = crypto.randomUUID();
+    localStorage.setItem('playerId', id);
+  }
+  return id;
+}
+
+/* ==================== PREMIUM STATE ==================== */
+const premiumState = {
+  premium: false,
+  until:   null,
+  checked: false,
+};
+
+async function checkPremiumStatus({ silent = false } = {}) {
+  const playerId = getPlayerId();
+  try {
+    const res  = await fetch(`/api/premium/status?playerId=${encodeURIComponent(playerId)}`);
+    const data = await res.json();
+    premiumState.premium = data.premium;
+    premiumState.until   = data.until;
+    premiumState.checked = true;
+    updatePremiumUI();
+    return data.premium;
+  } catch (err) {
+    if (!silent) console.error('Premium check failed:', err);
+    premiumState.checked = true;
+    return false;
+  }
+}
+
+function updatePremiumUI() {
+  const banner = document.getElementById('premium-lock-banner');
+  if (!banner) return;
+  if (premiumState.premium) {
+    banner.classList.add('hidden');
+  } else {
+    banner.classList.remove('hidden');
+  }
+}
+
+/* ─── Poll for premium after checkout (webhook may take a few seconds) ─── */
+async function pollPremiumAfterCheckout(maxAttempts = 6, intervalMs = 2000) {
+  for (let i = 0; i < maxAttempts; i++) {
+    await new Promise(r => setTimeout(r, intervalMs));
+    const isPremium = await checkPremiumStatus({ silent: true });
+    if (isPremium) {
+      showPremiumToast('¡Premium activado! Bienvenido ⭐');
+      return;
+    }
+  }
+}
+
+/* ─── Toast notification ─── */
+function showPremiumToast(msg) {
+  let toast = document.getElementById('premium-toast');
+  if (!toast) {
+    toast = document.createElement('div');
+    toast.id = 'premium-toast';
+    toast.className = 'premium-toast';
+    document.body.appendChild(toast);
+  }
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 4000);
+}
+
+/* ==================== PREMIUM MODAL ==================== */
+function showPremiumModal() {
+  document.getElementById('premium-modal').classList.remove('hidden');
+}
+
+function hidePremiumModal() {
+  document.getElementById('premium-modal').classList.add('hidden');
+}
+
+function requirePremium(callback) {
+  if (premiumState.premium) {
+    callback();
+  } else {
+    showPremiumModal();
+  }
+}
+
+function initPremiumModal() {
+  document.getElementById('btn-premium-close').addEventListener('click', hidePremiumModal);
+
+  document.getElementById('premium-modal').addEventListener('click', e => {
+    if (e.target === document.getElementById('premium-modal')) hidePremiumModal();
+  });
+
+  document.getElementById('btn-premium-checkout').addEventListener('click', async () => {
+    const btn      = document.getElementById('btn-premium-checkout');
+    const btnText  = document.getElementById('btn-premium-checkout-text');
+    btn.disabled   = true;
+    btnText.textContent = 'Redirigiendo…';
+
+    try {
+      const playerId = getPlayerId();
+      const res      = await fetch('/api/stripe/create-checkout-session', {
+        method:  'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body:    JSON.stringify({ playerId }),
+      });
+      const data = await res.json();
+      if (data.url) {
+        window.location.href = data.url;
+      } else {
+        throw new Error(data.error || 'No URL returned');
+      }
+    } catch (err) {
+      console.error('Checkout error:', err);
+      btnText.textContent = 'Error — inténtalo de nuevo';
+      btn.disabled = false;
+    }
+  });
+}
+
 /* ==================== AI (proxied via /api/hints) ==================== */
 async function generateHintsWithAI(words) {
   const res = await fetch('/api/hints', {
@@ -186,9 +307,13 @@ function initSetupScreen() {
   }
   updatePlayerNameInputs(5);
 
-  // Word mode tabs
+  // Word mode tabs — "write" tab requires premium
   document.querySelectorAll('.tab[data-mode]').forEach(tab => {
     tab.addEventListener('click', () => {
+      if (tab.dataset.mode === 'write' && !premiumState.premium) {
+        showPremiumModal();
+        return;
+      }
       document.querySelectorAll('.tab[data-mode]').forEach(t => t.classList.remove('active'));
       tab.classList.add('active');
       gameState.wordMode = tab.dataset.mode;
@@ -264,8 +389,12 @@ function initSetupScreen() {
     syncCustomWordsFromTable();
   });
 
-  // AI generate hints button
+  // Banner upgrade link inside the personalizado panel
+  document.getElementById('btn-banner-upgrade')?.addEventListener('click', showPremiumModal);
+
+  // AI generate hints button — requires premium
   document.getElementById('btn-generate-hints').addEventListener('click', async () => {
+    if (!premiumState.premium) { showPremiumModal(); return; }
     const textareaLines = document.getElementById('custom-words-textarea').value
       .split('\n').map(l => l.trim()).filter(Boolean);
     // If textarea is empty (a list was loaded), fall back to words stored in gameState
@@ -732,5 +861,18 @@ document.addEventListener('DOMContentLoaded', () => {
   initGameScreen();
   initVotingScreen();
   initResultsScreen();
+  initPremiumModal();
   showScreen('screen-setup');
+
+  // Check premium status on load (non-blocking)
+  checkPremiumStatus({ silent: true });
+
+  // Handle return from Stripe Checkout
+  const params = new URLSearchParams(window.location.search);
+  if (params.get('checkout') === 'success') {
+    // Clean URL without a reload
+    history.replaceState(null, '', window.location.pathname);
+    // Poll until webhook has updated Supabase (usually < 4 s)
+    pollPremiumAfterCheckout();
+  }
 });

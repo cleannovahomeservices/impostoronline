@@ -35,7 +35,7 @@
         <div class="tab-group">
           <button class="tab active" data-mode="random">Aleatorio</button>
           <button class="tab" data-mode="category">Categoría</button>
-          <button class="tab" data-mode="write">Personalizado</button>
+          <button class="tab" data-mode="write">Personalizado ⭐</button>
         </div>
 
         <!-- Panel: Aleatorio -->
@@ -53,6 +53,10 @@
 
         <!-- Panel: Personalizado -->
         <div class="word-panel" id="panel-write">
+          <div id="premium-lock-banner" class="premium-lock-banner hidden">
+            🔒 Función Premium —
+            <strong id="btn-banner-upgrade">Activar por 0,99 €/mes</strong>
+          </div>
           <div class="input-group">
             <label class="input-label">Palabras (una por línea)</label>
             <textarea id="custom-words-textarea" placeholder="Perro&#10;Gato&#10;Pájaro&#10;..."></textarea>
@@ -259,6 +263,41 @@
      ==================================================== -->
 <canvas id="confetti-canvas"></canvas>
 <div id="flash-overlay"></div>
+
+<!-- ====================================================
+     PREMIUM MODAL
+     ==================================================== -->
+<div id="premium-modal" class="premium-modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="premium-modal-title">
+  <div class="premium-modal">
+    <button class="premium-modal-close" id="btn-premium-close" aria-label="Cerrar">✕</button>
+
+    <div class="premium-modal-icon">⭐</div>
+    <h2 class="premium-modal-title" id="premium-modal-title">Función Premium</h2>
+    <p class="premium-modal-desc">
+      <strong>Lista personalizada</strong> y <strong>Generar pistas con IA</strong>
+      son funciones exclusivas para suscriptores.
+    </p>
+
+    <ul class="premium-features">
+      <li>✨ Genera pistas con GPT-4o para tus palabras</li>
+      <li>📋 Guarda y carga tus listas personalizadas</li>
+      <li>🔄 Cancela en cualquier momento</li>
+    </ul>
+
+    <div class="premium-price">
+      <span class="premium-price-amount">0,99 €</span>
+      <span class="premium-price-period">/ mes</span>
+    </div>
+
+    <button class="btn btn-premium-cta" id="btn-premium-checkout">
+      <span id="btn-premium-checkout-text">Activar Premium</span>
+    </button>
+
+    <p class="premium-modal-legal">
+      Pago seguro con Stripe · Cancela cuando quieras
+    </p>
+  </div>
+</div>
 
 <script src="data.js"></script>
 <script src="app.js"></script>
