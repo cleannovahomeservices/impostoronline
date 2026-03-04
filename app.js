@@ -23,7 +23,11 @@ const premiumState = {
 async function checkPremiumStatus({ silent = false } = {}) {
   const playerId = getPlayerId();
   try {
-    const res  = await fetch(`/api/premium/status?playerId=${encodeURIComponent(playerId)}`);
+    const res = await fetch(`/api/premium/status?playerId=${encodeURIComponent(playerId)}`);
+    const contentType = res.headers.get('content-type') || '';
+    if (!contentType.includes('application/json')) {
+      throw new Error(`Status API returned non-JSON (${res.status})`);
+    }
     const data = await res.json();
     premiumState.premium = data.premium;
     premiumState.until   = data.until;
@@ -105,16 +109,26 @@ function initPremiumModal() {
 
     try {
       const playerId = getPlayerId();
-      const res      = await fetch('/api/stripe/create-checkout-session', {
+      const res = await fetch('/api/stripe/create-checkout-session', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
         body:    JSON.stringify({ playerId }),
       });
+
+      // Guard: if the server returned HTML instead of JSON, surface a clear error
+      const contentType = res.headers.get('content-type') || '';
+      if (!contentType.includes('application/json')) {
+        throw new Error(`Server error ${res.status} — response is not JSON`);
+      }
+
       const data = await res.json();
+      if (!res.ok) {
+        throw new Error(data.error || `HTTP ${res.status}`);
+      }
       if (data.url) {
         window.location.href = data.url;
       } else {
-        throw new Error(data.error || 'No URL returned');
+        throw new Error('No checkout URL returned');
       }
     } catch (err) {
       console.error('Checkout error:', err);

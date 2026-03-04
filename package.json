@@ -2,6 +2,7 @@
   "name": "impostor-online",
   "version": "1.0.0",
   "description": "Juego Impostor Online — party game with AI hints",
+  "type": "module",
   "engines": {
     "node": ">=18"
   },
