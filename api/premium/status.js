@@ -17,7 +17,7 @@ export default async function handler(req, res) {
 
   const { data, error } = await supabase
     .from('premium_players')
-    .select('is_premium, current_period_end')
+    .select('is_premium')
     .eq('player_id', playerId)
     .maybeSingle();
 
@@ -26,13 +26,7 @@ export default async function handler(req, res) {
     return res.status(500).json({ error: 'Database error' });
   }
 
-  if (!data) {
-    return res.status(200).json({ premium: false, until: null });
-  }
+  const premium = !!(data?.is_premium);
 
-  const now   = new Date();
-  const until = data.current_period_end ? new Date(data.current_period_end) : null;
-  const premium = !!(data.is_premium && until && until > now);
-
-  return res.status(200).json({ premium, until: until?.toISOString() ?? null });
+  return res.status(200).json({ premium, until: null });
 }

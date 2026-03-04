@@ -41,17 +41,11 @@ export default async function handler(req, res) {
 
   const { data } = await supabase
     .from('premium_players')
-    .select('is_premium, current_period_end')
+    .select('is_premium')
     .eq('player_id', email)
     .maybeSingle();
 
-  const now     = new Date();
-  const until   = data?.current_period_end ? new Date(data.current_period_end) : null;
-  const premium = !!(data?.is_premium && until && until > now);
+  const premium = !!(data?.is_premium);
 
-  return res.status(200).json({
-    email,
-    premium,
-    until: until?.toISOString() ?? null,
-  });
+  return res.status(200).json({ email, premium, until: null });
 }
