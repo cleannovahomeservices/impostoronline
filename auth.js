@@ -22,42 +22,64 @@ async function initAuth() {
   // Wait for /api/config fetch + supabase.createClient() to finish
   if (window.supabaseReady) await window.supabaseReady;
 
-  if (!window.db) {
+  if (!window.supabaseClient) {
     console.warn('[auth] ✗ Supabase not available — is SUPABASE_ANON_KEY set in Vercel?');
-    updateAuthUI();
+    await handleAuthState(null);
     return;
   }
 
   // ── 2. Handle OAuth callback ──────────────────────────────
-  // With implicit flow, Supabase puts tokens in the URL hash.
-  // detectSessionInUrl:true means the client picks them up automatically;
-  // getSession() reads them out and stores them in localStorage.
   await handleAuthCallback();
 
   // ── 3. Restore session from localStorage ─────────────────
-  const { data: { session }, error: sessionErr } = await window.db.auth.getSession();
+  const { data: { session }, error: sessionErr } = await window.supabaseClient.auth.getSession();
   if (sessionErr) console.error('[auth] getSession error:', sessionErr);
 
   console.log('[auth] Session on load:', session);
 
-  authState.session = session;
-  authState.user    = session?.user ?? null;
-  updateAuthUI();
-  if (authState.user) await loadCloudLists();
+  await handleAuthState(session);
 
   // ── 4. Keep UI in sync with future auth events ────────────
-  window.db.auth.onAuthStateChange(async (_event, session) => {
+  window.supabaseClient.auth.onAuthStateChange(async (_event, session) => {
     console.log('[auth] onAuthStateChange →', _event, session?.user?.email ?? 'no user');
-    authState.session = session;
-    authState.user    = session?.user ?? null;
-    updateAuthUI();
-    if (authState.user) {
-      await loadCloudLists();
-    } else {
-      authState.lists = [];
-      if (typeof populateSavedListsDropdown === 'function') populateSavedListsDropdown();
-    }
+    await handleAuthState(session);
   });
+}
+
+/* ──────────────────────────────────────────────────────────
+   1.b AUTH STATE HANDLER  — drives premium + lists + UI
+   ────────────────────────────────────────────────────────── */
+async function handleAuthState(session) {
+  authState.session = session;
+  authState.user    = session?.user ?? null;
+
+  updateAuthUI();
+
+  let isPremium = false;
+
+  if (authState.user && window.supabaseClient) {
+    // Link legacy email-based premium row to this auth user, if present
+    await linkPremiumToUser(authState.user);
+    // Premium by user_id
+    isPremium = await checkPremium(authState.user);
+    await loadCloudLists();
+  } else {
+    // No session: keep lists purely locales, but still allow legacy premium by email
+    if (window.supabaseClient) {
+      isPremium = await checkPremium(null);
+    }
+    authState.lists = [];
+    if (typeof populateSavedListsDropdown === 'function') populateSavedListsDropdown();
+  }
+
+  // Drive game premium state + UI
+  if (typeof renderPremiumUI === 'function') {
+    renderPremiumUI(isPremium);
+  } else if (typeof premiumState !== 'undefined') {
+    premiumState.premium = !!isPremium;
+    premiumState.checked = true;
+    if (typeof updatePremiumUI === 'function') updatePremiumUI();
+  }
 }
 
 /* ── OAuth callback handler ─────────────────────────────────
@@ -136,7 +158,7 @@ async function signInWithGoogle() {
   // Make sure Supabase is ready (async init via /api/config)
   if (window.supabaseReady) await window.supabaseReady;
 
-  if (!window.db) {
+  if (!window.supabaseClient) {
     console.error('[auth] ✗ Supabase not initialised — check SUPABASE_ANON_KEY in Vercel');
     _showAuthToast('Error: Supabase no está configurado', 'err');
     return;
@@ -147,7 +169,7 @@ async function signInWithGoogle() {
   const redirectTo = window.location.origin;
   console.log('[auth] Redirecting to OAuth… redirectTo =', redirectTo);
 
-  const { error } = await window.db.auth.signInWithOAuth({
+  const { error } = await window.supabaseClient.auth.signInWithOAuth({
     provider: 'google',
     options:  { redirectTo },
   });
@@ -162,23 +184,23 @@ async function signInWithGoogle() {
 /* ── EMAIL / PASSWORD ────────────────────────────────────── */
 async function signInWithEmail(email, password) {
   if (window.supabaseReady) await window.supabaseReady;
-  if (!window.db) return new Error('Supabase not configured');
-  const { error } = await window.db.auth.signInWithPassword({ email, password });
+  if (!window.supabaseClient) return new Error('Supabase not configured');
+  const { error } = await window.supabaseClient.auth.signInWithPassword({ email, password });
   return error ?? null;
 }
 
 async function signUpWithEmail(email, password) {
   if (window.supabaseReady) await window.supabaseReady;
-  if (!window.db) return new Error('Supabase not configured');
-  const { data, error } = await window.db.auth.signUp({ email, password });
+  if (!window.supabaseClient) return new Error('Supabase not configured');
+  const { data, error } = await window.supabaseClient.auth.signUp({ email, password });
   if (error) return error;
   if (!data.session) return { confirmEmail: true };
   return null;
 }
 
 async function signOut() {
-  if (!window.db) return;
-  await window.db.auth.signOut();
+  if (!window.supabaseClient) return;
+  await window.supabaseClient.auth.signOut();
 }
 
 /* ──────────────────────────────────────────────────────────
@@ -319,8 +341,8 @@ function _showAuthToast(msg, type /* 'ok' | 'err' */) {
    5. CLOUD LISTS CRUD
    ────────────────────────────────────────────────────────── */
 async function loadCloudLists() {
-  if (!window.db || !authState.user) return;
-  const { data, error } = await window.db
+  if (!window.supabaseClient || !authState.user) return;
+  const { data, error } = await window.supabaseClient
     .from('custom_lists')
     .select('*')
     .order('created_at', { ascending: false });
@@ -332,17 +354,17 @@ async function loadCloudLists() {
 }
 
 async function saveCloudList(name, words) {
-  if (!window.db || !authState.user) return false;
+  if (!window.supabaseClient || !authState.user) return false;
   const existing = authState.lists.find(l => l.name === name);
   let error;
   if (existing) {
-    ({ error } = await window.db
+    ({ error } = await window.supabaseClient
       .from('custom_lists')
       .update({ words })
       .eq('id', existing.id)
       .eq('user_id', authState.user.id));
   } else {
-    ({ error } = await window.db.from('custom_lists').insert({
+    ({ error } = await window.supabaseClient.from('custom_lists').insert({
       user_id: authState.user.id,
       name,
       words,
@@ -354,12 +376,114 @@ async function saveCloudList(name, words) {
 }
 
 async function deleteCloudList(id) {
-  if (!window.db || !authState.user) return;
-  const { error } = await window.db
+  if (!window.supabaseClient || !authState.user) return;
+  const { error } = await window.supabaseClient
     .from('custom_lists')
     .delete()
     .eq('id', id)
     .eq('user_id', authState.user.id);
   if (error) { console.error('[lists] deleteCloudList:', error); return; }
   await loadCloudLists();
+}
+
+/* ──────────────────────────────────────────────────────────
+   6. PREMIUM HELPERS  — Supabase-based premium resolution
+   ────────────────────────────────────────────────────────── */
+async function checkPremium(userOrNull) {
+  if (!window.supabaseClient) return false;
+
+  try {
+    // Logged-in user: premium by user_id
+    if (userOrNull && userOrNull.id) {
+      const { data, error } = await window.supabaseClient
+        .from('premium_players')
+        .select('is_premium')
+        .eq('user_id', userOrNull.id)
+        .maybeSingle();
+
+      if (error && error.code !== 'PGRST116') {
+        console.error('[premium] checkPremium(user) error:', error);
+        return false;
+      }
+      const premium = !!(data && data.is_premium === true);
+      console.log('[premium] by user_id:', userOrNull.email, '→', premium);
+      return premium;
+    }
+
+    // Legacy: not logged-in → premium by local email (player_id)
+    const email = getLocalPremiumEmail();
+    if (!email) {
+      console.log('[premium] no local email stored → not premium');
+      return false;
+    }
+
+    const { data, error } = await window.supabaseClient
+      .from('premium_players')
+      .select('is_premium')
+      .eq('player_id', email)
+      .maybeSingle();
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('[premium] checkPremium(legacy) error:', error);
+      return false;
+    }
+    const premium = !!(data && data.is_premium === true);
+    console.log('[premium] by player_id/email:', email, '→', premium);
+    return premium;
+  } catch (err) {
+    console.error('[premium] checkPremium exception:', err);
+    return false;
+  }
+}
+
+async function linkPremiumToUser(user) {
+  if (!window.supabaseClient || !user || !user.email) return;
+
+  try {
+    const email = user.email.toLowerCase();
+    // Find existing premium row purchased by email before login
+    const { data, error } = await window.supabaseClient
+      .from('premium_players')
+      .select('id,user_id')
+      .eq('player_id', email)
+      .maybeSingle();
+
+    if (error && error.code !== 'PGRST116') {
+      console.error('[premium] linkPremiumToUser select error:', error);
+      return;
+    }
+    if (!data) {
+      // No legacy purchase by email — nothing to link
+      return;
+    }
+    if (data.user_id) {
+      // Already linked
+      return;
+    }
+
+    const { error: updateError } = await window.supabaseClient
+      .from('premium_players')
+      .update({ user_id: user.id })
+      .eq('id', data.id);
+
+    if (updateError) {
+      console.error('[premium] linkPremiumToUser update error:', updateError);
+    } else {
+      console.log('[premium] ✓ Linked legacy premium row to user_id', user.id);
+    }
+  } catch (err) {
+    console.error('[premium] linkPremiumToUser exception:', err);
+  }
+}
+
+function getLocalPremiumEmail() {
+  // Preferred key going forward
+  let email = (localStorage.getItem('player_email') || '').trim();
+  if (email && email.includes('@')) return email.toLowerCase();
+
+  // Backwards-compat: earlier we stored email in playerId
+  const playerId = (localStorage.getItem('playerId') || '').trim();
+  if (playerId && playerId.includes('@')) return playerId.toLowerCase();
+
+  return null;
 }

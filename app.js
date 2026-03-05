@@ -25,16 +25,15 @@ async function checkPremiumStatus({ silent = false } = {}) {
   const playerId = getPlayerId();
   console.log('[premium] checkPremiumStatus — usando playerId:', playerId);
   try {
+    // Legacy fallback via backend API (kept for compatibility).
+    // New primary source of truth is Supabase via checkPremium(user|null) in auth.js.
     const res = await fetch(`/api/premium/status?playerId=${encodeURIComponent(playerId)}`);
     const contentType = res.headers.get('content-type') || '';
     if (!contentType.includes('application/json')) {
       throw new Error(`Status API returned non-JSON (${res.status})`);
     }
     const data = await res.json();
-    premiumState.premium = data.premium;
-    premiumState.until   = data.until;
-    premiumState.checked = true;
-    updatePremiumUI();
+    renderPremiumUI(data.premium);
     return data.premium;
   } catch (err) {
     if (!silent) console.error('Premium check failed:', err);
@@ -53,6 +52,13 @@ function updatePremiumUI() {
   }
 }
 
+// Central place to apply premium flag to game state + UI
+function renderPremiumUI(isPremium) {
+  premiumState.premium = !!isPremium;
+  premiumState.checked = true;
+  updatePremiumUI();
+}
+
 /* ─── Poll for premium after checkout (webhook may take a few seconds) ─── */
 // Called when the user lands back from Stripe with ?checkout=success&session_id=cs_...
 // Resolves session → email → stores email as the persistent playerId → checks premium.
@@ -65,16 +71,14 @@ async function handleCheckoutSuccess(sessionId) {
     const data = await res.json();
 
     if (data.email) {
-      // Persist email as the device's playerId so future status checks match Supabase
+      // Persist email as the device's playerId / player_email so legacy premium lookups work
       localStorage.setItem('playerId', data.email);
-      console.log('[premium] email stored as playerId:', data.email);
+      localStorage.setItem('player_email', data.email);
+      console.log('[premium] email stored as playerId/player_email:', data.email);
     }
 
     if (data.premium) {
-      premiumState.premium = data.premium;
-      premiumState.until   = data.until;
-      premiumState.checked = true;
-      updatePremiumUI();
+      renderPremiumUI(data.premium);
       showPremiumToast('¡Premium activado! Bienvenido ⭐');
       return;
     }
@@ -271,11 +275,8 @@ async function saveList(name) {
     await saveCloudList(name, gameState.customWords);
     return;
   }
-  // Local fallback
-  const all = JSON.parse(localStorage.getItem('impostor_lists') || '{}');
-  all[name] = gameState.customWords;
-  localStorage.setItem('impostor_lists', JSON.stringify(all));
-  populateSavedListsDropdown();
+  // No session: do not create new cloud entries — keep any existing local lists as read-only
+  alert('Inicia sesión para guardar tus listas en la nube.');
 }
 
 function loadList(idOrName) {
@@ -1021,9 +1022,8 @@ document.addEventListener('DOMContentLoaded', () => {
   initAuthModal();
   showScreen('screen-setup');
 
-  // Auth + premium status (non-blocking, run in parallel)
+  // Auth + premium status (non-blocking)
   initAuth();
-  checkPremiumStatus({ silent: true });
 
   // Handle return from Stripe Checkout
   const params = new URLSearchParams(window.location.search);
