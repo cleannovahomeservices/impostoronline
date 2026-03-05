@@ -133,17 +133,30 @@ function requirePremium(callback) {
 }
 
 function initPremiumModal() {
-  document.getElementById('btn-premium-close').addEventListener('click', hidePremiumModal);
+  const modal       = document.getElementById('premium-modal');
+  const btnClose    = document.getElementById('btn-premium-close');
+  const btnCheckout = document.getElementById('btn-premium-checkout');
+  const btnRecover  = document.getElementById('btn-premium-recover');
 
-  document.getElementById('premium-modal').addEventListener('click', e => {
-    if (e.target === document.getElementById('premium-modal')) hidePremiumModal();
+  if (!modal) {
+    console.warn('[premium] #premium-modal not found — premium modal disabled');
+    return;
+  }
+
+  if (btnClose) btnClose.addEventListener('click', hidePremiumModal);
+
+  modal.addEventListener('click', e => {
+    if (e.target === modal) hidePremiumModal();
   });
 
-  document.getElementById('btn-premium-checkout').addEventListener('click', async () => {
-    const btn      = document.getElementById('btn-premium-checkout');
-    const btnText  = document.getElementById('btn-premium-checkout-text');
-    btn.disabled   = true;
-    btnText.textContent = 'Redirigiendo…';
+  if (!btnCheckout) {
+    console.warn('[premium] #btn-premium-checkout not found');
+  } else {
+    btnCheckout.addEventListener('click', async () => {
+    const btn     = document.getElementById('btn-premium-checkout');
+    const btnText = document.getElementById('btn-premium-checkout-text');
+    if (btn) btn.disabled = true;
+    if (btnText) btnText.textContent = 'Redirigiendo…';
 
     try {
       const playerId = getPlayerId();
@@ -170,26 +183,27 @@ function initPremiumModal() {
       }
     } catch (err) {
       console.error('Checkout error:', err);
-      btnText.textContent = 'Error — inténtalo de nuevo';
-      btn.disabled = false;
+      if (btnText) btnText.textContent = 'Error — inténtalo de nuevo';
+      if (btn) btn.disabled = false;
     }
   });
+  }
 
-  /* ── Recovery: check premium by email ── */
-  document.getElementById('btn-premium-recover').addEventListener('click', async () => {
+  /* Recovery: solo si existe en el DOM */
+  if (btnRecover) {
+    btnRecover.addEventListener('click', async () => {
     const emailInput = document.getElementById('premium-recover-email');
     const msg        = document.getElementById('premium-recover-msg');
     const btn        = document.getElementById('btn-premium-recover');
-    const email      = emailInput.value.trim().toLowerCase();
+    const email      = (emailInput && emailInput.value && emailInput.value.trim()) ? emailInput.value.trim().toLowerCase() : '';
 
     if (!email || !email.includes('@')) {
-      showRecoverMsg('Introduce un email válido.', 'err');
+      if (msg) { msg.textContent = 'Introduce un email válido.'; msg.className = 'premium-recover-msg err'; }
       return;
     }
 
-    btn.disabled     = true;
-    btn.textContent  = '…';
-    msg.className    = 'premium-recover-msg hidden';
+    if (btn) { btn.disabled = true; btn.textContent = '…'; }
+    if (msg) msg.className = 'premium-recover-msg hidden';
 
     try {
       console.log('[premium] verificando premium por email:', email);
@@ -200,29 +214,23 @@ function initPremiumModal() {
 
       if (data.premium) {
         localStorage.setItem('playerId', email);
-        console.log('[premium] email guardado como playerId:', email);
         premiumState.premium = true;
         premiumState.until   = data.until;
         premiumState.checked = true;
-        updatePremiumUI();
+        if (typeof updatePremiumUI === 'function') updatePremiumUI();
         hidePremiumModal();
-        showPremiumToast('¡Premium activado! Bienvenido ⭐');
+        if (typeof showPremiumToast === 'function') showPremiumToast('¡Premium activado! Bienvenido ⭐');
       } else {
-        showRecoverMsg('No se encontró Premium para ese email.', 'err');
+        if (msg) { msg.textContent = 'No se encontró Premium para ese email.'; msg.className = 'premium-recover-msg err'; }
       }
     } catch (err) {
       console.error('[premium] recovery error:', err);
-      showRecoverMsg('Error al verificar. Inténtalo de nuevo.', 'err');
+      if (msg) { msg.textContent = 'Error al verificar. Inténtalo de nuevo.'; msg.className = 'premium-recover-msg err'; }
     } finally {
-      btn.disabled    = false;
-      btn.textContent = 'Verificar';
-    }
-
-    function showRecoverMsg(text, type) {
-      msg.textContent = text;
-      msg.className   = `premium-recover-msg ${type}`;
+      if (btn) { btn.disabled = false; btn.textContent = 'Verificar'; }
     }
   });
+  }
 }
 
 /* ==================== AI (proxied via /api/hints) ==================== */
