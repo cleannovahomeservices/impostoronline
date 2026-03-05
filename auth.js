@@ -19,6 +19,9 @@ const authState = {
    1. INIT  — called from app.js DOMContentLoaded
    ────────────────────────────────────────────────────────── */
 async function initAuth() {
+  // Mostrar botón "Iniciar sesión" de inmediato (como antes), sin esperar a Supabase
+  updateAuthUI();
+
   // Wait for /api/config fetch + supabase.createClient() to finish
   if (window.supabaseReady) await window.supabaseReady;
 
