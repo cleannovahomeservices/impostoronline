@@ -184,7 +184,6 @@ async function handleAuthCallback() {
    ────────────────────────────────────────────────────────── */
 function updateAuthUI() {
   const bar = document.getElementById('auth-bar');
-  const inline = document.getElementById('login-inline');
   if (!bar) return;
 
   if (authState.user) {
@@ -198,7 +197,6 @@ function updateAuthUI() {
     `;
     document.getElementById('btn-signout')?.addEventListener('click', signOut);
     document.getElementById('cloud-save-banner')?.classList.add('hidden');
-    inline?.classList.add('hidden');
     hideAuthModal();
   } else {
     bar.innerHTML = `
@@ -207,7 +205,6 @@ function updateAuthUI() {
     `;
     document.getElementById('btn-signin-bar')?.addEventListener('click', showAuthModal);
     document.getElementById('cloud-save-banner')?.classList.remove('hidden');
-    inline?.classList.remove('hidden');
   }
 }
 

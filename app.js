@@ -443,11 +443,6 @@ function initSetupScreen() {
   }
   updatePlayerNameInputs(5);
 
-  // Inline login button (under logo)
-  document.getElementById('btn-inline-login')?.addEventListener('click', () => {
-    if (typeof showAuthModal === 'function') showAuthModal();
-  });
-
   // Word mode tabs — "write" tab requires premium
   document.querySelectorAll('.tab[data-mode]').forEach(tab => {
     tab.addEventListener('click', () => {
