@@ -74,25 +74,26 @@ async function handleAuthCallback() {
 
   if (!hasToken && !hasCode) return;  // nothing to handle
 
-  console.log('[auth] OAuth callback detected in URL');
+  console.log('[auth] OAuth callback detected in URL — processing…');
 
-  // Supabase v2 with detectSessionInUrl:true handles the token/code automatically.
-  // Just make sure the URL is cleaned up so it doesn't linger.
   try {
+    // Supabase implicit flow: detectSessionInUrl:true already parsed the hash.
+    // getSession() returns the session that was just stored.
     const { data: { session }, error } = await window.db.auth.getSession();
     if (error) {
       console.error('[auth] Callback session error:', error);
       _showAuthToast('Error al iniciar sesión: ' + error.message, 'err');
     } else if (session) {
       console.log('[auth] ✓ Session from callback:', session.user.email);
+    } else {
+      console.warn('[auth] Callback detected but no session found');
     }
   } catch (e) {
     console.error('[auth] handleAuthCallback exception:', e);
   }
 
-  // Clean up URL so tokens don't stay in browser history
-  const cleanUrl = window.location.pathname + (hasCode ? '' : window.location.search);
-  history.replaceState(null, '', cleanUrl);
+  // Clean URL — remove hash/code so they don't linger in browser history
+  history.replaceState(null, '', window.location.pathname);
 }
 
 /* ──────────────────────────────────────────────────────────
@@ -132,7 +133,7 @@ function updateAuthUI() {
 async function signInWithGoogle() {
   console.log('[auth] Google login click');
 
-  // Make sure Supabase is ready
+  // Make sure Supabase is ready (async init via /api/config)
   if (window.supabaseReady) await window.supabaseReady;
 
   if (!window.db) {
@@ -141,8 +142,9 @@ async function signInWithGoogle() {
     return;
   }
 
-  // Use location.origin so it works on both impostor.click and www.impostor.click
-  const redirectTo = `${location.origin}/auth/callback`;
+  // Redirect back to the root — works for both impostor.click and www.impostor.click.
+  // Using origin only (no /auth/callback path) ensures assets load from "/".
+  const redirectTo = window.location.origin;
   console.log('[auth] Redirecting to OAuth… redirectTo =', redirectTo);
 
   const { error } = await window.db.auth.signInWithOAuth({
@@ -214,14 +216,16 @@ function initAuthModal() {
   });
 
   // ── Google OAuth button ───────────────
-  // This is the canonical event listener for #btn-auth-google
+  // type="button" in HTML + explicit preventDefault covers Opera/mobile quirks
   const googleBtn = document.getElementById('btn-auth-google');
   if (googleBtn) {
     googleBtn.addEventListener('click', (e) => {
-      e.stopPropagation();   // don't bubble to modal backdrop listener
+      e.preventDefault();
+      e.stopPropagation();
+      console.log('[auth] Google login click (button listener fired)');
       signInWithGoogle();
     });
-    console.log('[auth] ✓ Google button listener attached to #btn-auth-google');
+    console.log('[auth] ✓ #btn-auth-google listener attached');
   } else {
     console.error('[auth] ✗ #btn-auth-google not found in DOM');
   }

@@ -1,12 +1,12 @@
-const CACHE = 'impostor-v2';
+const CACHE = 'impostor-v3';
 const STATIC = [
   '/',
   '/index.html',
+  '/style.css',
+  '/data.js',
   '/app.js',
   '/auth.js',
   '/supabase-init.js',
-  '/style.css',
-  '/data.js',
   '/icons/icon-192.png',
   '/icons/icon-512.png',
   '/manifest.webmanifest',

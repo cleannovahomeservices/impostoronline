@@ -8,7 +8,8 @@
   <meta name="theme-color" content="#07080b" />
   <link rel="manifest" href="/manifest.webmanifest" />
   <link rel="apple-touch-icon" href="/icons/icon-192.png" />
-  <link rel="stylesheet" href="style.css" />
+  <!-- Absolute path — never breaks after OAuth redirect (/auth/callback#...) -->
+  <link rel="stylesheet" href="/style.css" />
   <!-- Supabase JS (UMD — exposes window.supabase) -->
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.js"></script>
 </head>
@@ -76,18 +77,18 @@
           <!-- Cloud-save nudge (shown when not logged in) -->
           <div id="cloud-save-banner" class="cloud-save-banner hidden">
             <span>☁ Inicia sesión para guardar tus listas</span>
-            <button class="btn-cloud-login" id="btn-cloud-login">Iniciar sesión</button>
+            <button type="button" class="btn-cloud-login" id="btn-cloud-login">Iniciar sesión</button>
           </div>
 
           <div id="save-list-row">
             <input type="text" id="list-name-input" placeholder="Nombre de la lista" />
-            <button id="btn-save-list" class="btn btn-ghost">Guardar</button>
+            <button type="button" id="btn-save-list" class="btn btn-ghost">Guardar</button>
           </div>
           <div id="load-list-row">
             <select id="saved-lists-select"></select>
             <div class="load-list-btns">
-              <button id="btn-load-list" class="btn btn-ghost">Cargar</button>
-              <button id="btn-delete-list" class="btn btn-ghost">Eliminar</button>
+              <button type="button" id="btn-load-list" class="btn btn-ghost">Cargar</button>
+              <button type="button" id="btn-delete-list" class="btn btn-ghost">Eliminar</button>
             </div>
           </div>
         </div>
@@ -97,9 +98,9 @@
       <div class="card">
         <div class="card-title">Dificultad de la pista</div>
         <div class="hint-group">
-          <button class="hint-pill active" data-hint="none">Sin pista</button>
-          <button class="hint-pill" data-hint="easy">Pista fácil</button>
-          <button class="hint-pill" data-hint="hard">Pista difícil</button>
+          <button type="button" class="hint-pill active" data-hint="none">Sin pista</button>
+          <button type="button" class="hint-pill" data-hint="easy">Pista fácil</button>
+          <button type="button" class="hint-pill" data-hint="hard">Pista difícil</button>
         </div>
       </div>
 
@@ -107,8 +108,8 @@
       <div class="card">
         <div class="card-title">Modo impostor</div>
         <div class="pill-group impostor-mode-opts" style="margin-bottom:10px">
-          <button class="pill active" data-impostor-mode="auto">Normal (auto)</button>
-          <button class="pill" data-impostor-mode="libre">Libre</button>
+          <button type="button" class="pill active" data-impostor-mode="auto">Normal (auto)</button>
+          <button type="button" class="pill" data-impostor-mode="libre">Libre</button>
         </div>
         <div id="auto-impostor-display" style="font-size:0.8rem;color:var(--text-muted);margin-bottom:4px">Auto: 1 impostor</div>
         <div id="impostor-libre-row" class="hidden">
@@ -136,14 +137,14 @@
         <div id="timer-stepper-wrap" class="hidden">
           <div class="input-label" style="margin-bottom:6px">Minutos de discusión</div>
           <div class="stepper">
-            <button class="stepper-btn" id="timer-dec">−</button>
+            <button type="button" class="stepper-btn" id="timer-dec">−</button>
             <span class="stepper-val" id="timer-val">3</span>
-            <button class="stepper-btn" id="timer-inc">+</button>
+            <button type="button" class="stepper-btn" id="timer-inc">+</button>
           </div>
         </div>
       </div>
 
-      <button class="btn btn-primary" id="btn-start">Iniciar Juego →</button>
+      <button type="button" class="btn btn-primary" id="btn-start">Iniciar Juego →</button>
     </div><!-- /container -->
   </div><!-- /setup-scroll -->
 </section>
@@ -179,7 +180,7 @@
       </div>
     </div>
 
-    <button class="btn btn-primary" id="btn-role-next" disabled>Pasar al siguiente</button>
+    <button type="button" class="btn btn-primary" id="btn-role-next" disabled>Pasar al siguiente</button>
   </div>
 </section>
 
@@ -220,8 +221,8 @@
 
     <!-- Controls -->
     <div class="timer-controls">
-      <button class="btn btn-secondary" id="btn-pause">Pausar</button>
-      <button class="btn btn-primary" id="btn-go-voting" style="margin-top:0">Ir a Votación</button>
+      <button type="button" class="btn btn-secondary" id="btn-pause">Pausar</button>
+      <button type="button" class="btn btn-primary" id="btn-go-voting" style="margin-top:0">Ir a Votación</button>
     </div>
 
     <!-- Players -->
@@ -244,7 +245,7 @@
 
     <div class="vote-grid" id="vote-grid"></div>
 
-    <button class="btn btn-danger" id="btn-reveal">Revelar Impostor(es) →</button>
+    <button type="button" class="btn btn-danger" id="btn-reveal">Revelar Impostor(es) →</button>
   </div>
 </section>
 
@@ -269,7 +270,7 @@
       <div style="font-size:0.75rem;color:var(--text-muted);margin-top:4px" id="secret-category"></div>
     </div>
 
-    <button class="btn btn-primary" id="btn-play-again">Jugar de Nuevo</button>
+    <button type="button" class="btn btn-primary" id="btn-play-again">Jugar de Nuevo</button>
   </div>
 </section>
 
@@ -284,7 +285,7 @@
      ==================================================== -->
 <div id="premium-modal" class="premium-modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="premium-modal-title">
   <div class="premium-modal">
-    <button class="premium-modal-close" id="btn-premium-close" aria-label="Cerrar">✕</button>
+    <button type="button" class="premium-modal-close" id="btn-premium-close" aria-label="Cerrar">✕</button>
 
     <div class="premium-modal-icon">⭐</div>
     <h2 class="premium-modal-title" id="premium-modal-title">Función Premium</h2>
@@ -304,7 +305,7 @@
       <span class="premium-price-period">/ mes</span>
     </div>
 
-    <button class="btn btn-premium-cta" id="btn-premium-checkout">
+    <button type="button" class="btn btn-premium-cta" id="btn-premium-checkout">
       <span id="btn-premium-checkout-text">Activar Premium</span>
     </button>
 
@@ -317,7 +318,7 @@
       <p class="premium-recover-label">¿Ya tienes Premium? Introduce tu email:</p>
       <div class="premium-recover-row">
         <input type="email" id="premium-recover-email" placeholder="tu@email.com" autocomplete="email" />
-        <button class="btn-recover" id="btn-premium-recover">Verificar</button>
+        <button type="button" class="btn-recover" id="btn-premium-recover">Verificar</button>
       </div>
       <p id="premium-recover-msg" class="premium-recover-msg hidden"></p>
     </div>
@@ -329,13 +330,13 @@
      ==================================================== -->
 <div id="auth-modal" class="auth-modal-backdrop hidden" role="dialog" aria-modal="true" aria-labelledby="auth-modal-title">
   <div class="auth-modal">
-    <button class="auth-modal-close" id="btn-auth-close" aria-label="Cerrar">✕</button>
+    <button type="button" class="auth-modal-close" id="btn-auth-close" aria-label="Cerrar">✕</button>
 
     <h2 class="auth-modal-title" id="auth-modal-title">Inicia sesión</h2>
     <p class="auth-modal-sub">Para guardar tus listas en la nube</p>
 
-    <!-- Google OAuth -->
-    <button class="btn-google" id="btn-auth-google">
+    <!-- Google OAuth — type="button" prevents accidental form submit in Opera/mobile -->
+    <button type="button" class="btn-google" id="btn-auth-google">
       <svg class="google-icon" viewBox="0 0 24 24" aria-hidden="true">
         <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
         <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
@@ -376,9 +377,10 @@
   </div>
 </div>
 
-<script src="data.js"></script>
-<script src="supabase-init.js"></script>
-<script src="auth.js"></script>
-<script src="app.js"></script>
+<!-- Absolute paths — never break after OAuth redirect (/auth/callback#...) -->
+<script src="/data.js"></script>
+<script src="/supabase-init.js"></script>
+<script src="/auth.js"></script>
+<script src="/app.js"></script>
 </body>
 </html>
