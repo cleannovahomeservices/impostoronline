@@ -263,38 +263,76 @@ function syncCustomWordsFromTable() {
   // If textarea is empty (e.g. a list was loaded), keep gameState.customWords as-is
 }
 
-/* ==================== SAVED LISTS (localStorage) ==================== */
-function saveList(name) {
+/* ==================== SAVED LISTS (cloud if logged in, localStorage otherwise) ==================== */
+async function saveList(name) {
   if (!name) return;
+  // Cloud save if logged in
+  if (typeof authState !== 'undefined' && authState.user) {
+    await saveCloudList(name, gameState.customWords);
+    return;
+  }
+  // Local fallback
   const all = JSON.parse(localStorage.getItem('impostor_lists') || '{}');
   all[name] = gameState.customWords;
   localStorage.setItem('impostor_lists', JSON.stringify(all));
   populateSavedListsDropdown();
 }
 
-function loadList(name) {
-  if (!name) return;
+function loadList(idOrName) {
+  if (!idOrName) return;
+  // Cloud load if logged in
+  if (typeof authState !== 'undefined' && authState.user) {
+    const list = authState.lists.find(l => l.id === idOrName);
+    if (!list) return;
+    const raw = list.words;
+    gameState.customWords = Array.isArray(raw)
+      ? raw.map(w => (typeof w === 'string' ? { word: w, easyHint: '', hardHint: '' } : w))
+      : [];
+    document.getElementById('custom-words-textarea').value = '';
+    const n = gameState.customWords.length;
+    const hasPistas = gameState.customWords.some(w => w.easyHint || w.hardHint);
+    document.getElementById('hints-table-wrap').innerHTML =
+      `<div class="hints-ready">📋 Lista "<strong>${list.name}</strong>" cargada · ${n} palabra${n !== 1 ? 's' : ''}${hasPistas ? ' · con pistas' : ''}</div>`;
+    return;
+  }
+  // Local fallback
   const all = JSON.parse(localStorage.getItem('impostor_lists') || '{}');
-  if (!all[name]) return;
-  const words = all[name];
+  if (!all[idOrName]) return;
+  const words = all[idOrName];
   gameState.customWords = words;
   document.getElementById('custom-words-textarea').value = '';
   const n = words.length;
   const hasPistas = words.some(w => w.easyHint || w.hardHint);
   document.getElementById('hints-table-wrap').innerHTML =
-    `<div class="hints-ready">📋 Lista "<strong>${name}</strong>" cargada · ${n} palabra${n !== 1 ? 's' : ''}${hasPistas ? ' · con pistas' : ''}</div>`;
+    `<div class="hints-ready">📋 Lista "<strong>${idOrName}</strong>" cargada · ${n} palabra${n !== 1 ? 's' : ''}${hasPistas ? ' · con pistas' : ''}</div>`;
 }
 
-function deleteList(name) {
-  if (!name) return;
+async function deleteList(idOrName) {
+  if (!idOrName) return;
+  if (typeof authState !== 'undefined' && authState.user) {
+    await deleteCloudList(idOrName);
+    return;
+  }
   const all = JSON.parse(localStorage.getItem('impostor_lists') || '{}');
-  delete all[name];
+  delete all[idOrName];
   localStorage.setItem('impostor_lists', JSON.stringify(all));
   populateSavedListsDropdown();
 }
 
 function populateSavedListsDropdown() {
   const select = document.getElementById('saved-lists-select');
+  if (!select) return;
+
+  // Cloud lists if logged in
+  if (typeof authState !== 'undefined' && authState.user) {
+    const lists = authState.lists || [];
+    select.innerHTML = lists.length
+      ? lists.map(l => `<option value="${l.id}" data-cloud="true">${l.name}</option>`).join('')
+      : '<option value="" disabled selected>Sin listas en la nube</option>';
+    return;
+  }
+
+  // Local lists
   const keys = Object.keys(JSON.parse(localStorage.getItem('impostor_lists') || '{}'));
   select.innerHTML = keys.length
     ? keys.map(k => `<option value="${k}">${k}</option>`).join('')
@@ -518,20 +556,32 @@ function initSetupScreen() {
   });
 
   // Save / Load / Delete list buttons
-  document.getElementById('btn-save-list').addEventListener('click', () => {
+  document.getElementById('btn-save-list').addEventListener('click', async () => {
     const name = document.getElementById('list-name-input').value.trim();
     if (!name) return;
-    saveList(name);
+    const btn = document.getElementById('btn-save-list');
+    btn.disabled    = true;
+    btn.textContent = 'Guardando…';
+    await saveList(name);
+    btn.disabled    = false;
+    btn.textContent = 'Guardar';
+    document.getElementById('list-name-input').value = '';
   });
 
   document.getElementById('btn-load-list').addEventListener('click', () => {
-    const name = document.getElementById('saved-lists-select').value;
-    if (name) loadList(name);
+    const val = document.getElementById('saved-lists-select').value;
+    if (val) loadList(val);
   });
 
-  document.getElementById('btn-delete-list').addEventListener('click', () => {
-    const name = document.getElementById('saved-lists-select').value;
-    if (name) deleteList(name);
+  document.getElementById('btn-delete-list').addEventListener('click', async () => {
+    const val = document.getElementById('saved-lists-select').value;
+    if (!val) return;
+    const btn = document.getElementById('btn-delete-list');
+    btn.disabled    = true;
+    btn.textContent = '…';
+    await deleteList(val);
+    btn.disabled    = false;
+    btn.textContent = 'Eliminar';
   });
 
   populateSavedListsDropdown();
@@ -968,9 +1018,11 @@ document.addEventListener('DOMContentLoaded', () => {
   initVotingScreen();
   initResultsScreen();
   initPremiumModal();
+  initAuthModal();
   showScreen('screen-setup');
 
-  // Check premium status on load (non-blocking)
+  // Auth + premium status (non-blocking, run in parallel)
+  initAuth();
   checkPremiumStatus({ silent: true });
 
   // Handle return from Stripe Checkout

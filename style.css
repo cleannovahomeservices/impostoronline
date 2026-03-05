@@ -1347,3 +1347,235 @@ input[type="range"]::-webkit-slider-thumb {
   transform: translateX(-50%) translateY(0);
   opacity: 1;
 }
+
+/* ====================================================
+   AUTH BAR  (top of setup screen)
+   ==================================================== */
+.auth-bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 20px;
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.8rem;
+  min-height: 42px;
+  flex-wrap: wrap;
+}
+
+.auth-bar-status {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.auth-bar-status.online { background: var(--player-color); }
+
+.auth-bar-email {
+  flex: 1;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--text);
+  font-weight: 500;
+}
+
+.auth-bar-hint {
+  flex: 1;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+
+.auth-bar-btn {
+  padding: 5px 14px;
+  border-radius: 50px;
+  border: 1px solid var(--border);
+  background: transparent;
+  color: var(--cyan);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition);
+}
+.auth-bar-btn:hover { background: rgba(0,229,255,0.08); border-color: var(--cyan); }
+
+/* ====================================================
+   AUTH MODAL
+   ==================================================== */
+.auth-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.72);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1010;
+  padding: 16px;
+}
+.auth-modal-backdrop.hidden { display: none !important; }
+
+.auth-modal {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 28px 24px 24px;
+  width: 100%;
+  max-width: 380px;
+  position: relative;
+  animation: fadeInUp 0.2s ease;
+}
+
+.auth-modal-close {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 1.1rem;
+  cursor: pointer;
+  padding: 4px 8px;
+  border-radius: 4px;
+  transition: color var(--transition);
+}
+.auth-modal-close:hover { color: var(--text); }
+
+.auth-modal-title {
+  font-size: 1.15rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 4px;
+}
+
+.auth-modal-sub {
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  margin: 0 0 20px;
+}
+
+/* ── Google button ── */
+.btn-google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 10px;
+  width: 100%;
+  padding: 11px 16px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--card-bg-2);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.btn-google:hover { border-color: #4285F4; background: rgba(66,133,244,0.08); }
+
+.google-icon {
+  width: 18px;
+  height: 18px;
+  flex-shrink: 0;
+}
+
+/* ── Divider ── */
+.auth-divider {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  margin: 18px 0;
+  color: var(--text-muted);
+  font-size: 0.78rem;
+}
+.auth-divider::before,
+.auth-divider::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--border);
+}
+
+/* ── Email / password inputs ── */
+.auth-input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 10px 14px;
+  margin-bottom: 10px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  background: var(--card-bg-2);
+  color: var(--text);
+  font-size: 0.88rem;
+  font-family: inherit;
+  transition: border-color var(--transition);
+}
+.auth-input:focus {
+  outline: none;
+  border-color: var(--cyan);
+}
+.auth-input::placeholder { color: var(--text-muted); opacity: 0.6; }
+
+/* ── Messages ── */
+.auth-msg {
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin: 0 0 10px;
+}
+.auth-msg.hidden { display: none; }
+.auth-error { color: var(--danger); }
+.auth-info  { color: var(--player-color); }
+
+/* ── Submit button ── */
+.auth-submit {
+  width: 100%;
+  margin-top: 2px;
+}
+
+/* ── Toggle link ── */
+.auth-toggle {
+  margin: 14px 0 0;
+  font-size: 0.8rem;
+  color: var(--text-muted);
+  text-align: center;
+}
+.auth-toggle a {
+  color: var(--cyan);
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+/* ====================================================
+   CLOUD-SAVE BANNER  (inside panel-write)
+   ==================================================== */
+.cloud-save-banner {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: rgba(0,229,255,0.05);
+  border: 1px solid rgba(0,229,255,0.18);
+  border-radius: var(--radius-sm);
+  padding: 9px 14px;
+  margin-bottom: 12px;
+  font-size: 0.82rem;
+  color: var(--text-muted);
+  flex-wrap: wrap;
+}
+.cloud-save-banner.hidden { display: none !important; }
+
+.btn-cloud-login {
+  padding: 5px 14px;
+  border-radius: 50px;
+  border: 1px solid var(--cyan-dim, rgba(0,229,255,0.35));
+  background: transparent;
+  color: var(--cyan);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  white-space: nowrap;
+  transition: all var(--transition);
+}
+.btn-cloud-login:hover { background: rgba(0,229,255,0.1); }
