@@ -1401,6 +1401,18 @@ input[type="range"]::-webkit-slider-thumb {
 }
 .auth-bar-btn:hover { background: rgba(0,229,255,0.08); border-color: var(--cyan); }
 
+/* Inline login CTA just under logo */
+.login-inline {
+  display: flex;
+  justify-content: center;
+  margin: 10px 0 20px;
+}
+.login-inline-btn {
+  font-size: 0.8rem;
+  padding: 6px 16px;
+  border-radius: 999px;
+}
+
 /* ====================================================
    AUTH MODAL
    ==================================================== */
