@@ -20,8 +20,11 @@
      ==================================================== -->
 <section class="screen active" id="screen-setup">
   <div class="setup-scroll">
-    <!-- Auth status bar -->
-    <div id="auth-bar" class="auth-bar"></div>
+    <!-- Auth status bar: botón visible desde el primer carga (no depende de JS) -->
+    <div id="auth-bar" class="auth-bar">
+      <span class="auth-bar-hint">Inicia sesión para guardar listas en la nube</span>
+      <button type="button" class="auth-bar-btn" id="btn-signin-bar">Iniciar sesión</button>
+    </div>
 
     <div class="container">
       <div class="logo">Juego Impostor</div>

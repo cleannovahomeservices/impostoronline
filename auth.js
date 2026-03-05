@@ -301,6 +301,9 @@ function initAuthModal() {
     }
   });
 
+  // ── Barra: botón "Iniciar sesión" (puede estar ya en el HTML)
+  document.getElementById('btn-signin-bar')?.addEventListener('click', showAuthModal);
+
   // ── Cloud-save banner shortcut ────────
   document.getElementById('btn-cloud-login')?.addEventListener('click', showAuthModal);
 }
