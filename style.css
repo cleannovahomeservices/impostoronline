@@ -1399,18 +1399,29 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 .auth-bar-btn {
-  padding: 5px 14px;
+  padding: 8px 18px;
   border-radius: 50px;
-  border: 1px solid var(--border);
-  background: transparent;
+  border: 1px solid rgba(0, 229, 255, 0.4);
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.12), rgba(224, 64, 251, 0.08));
   color: var(--cyan);
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
   white-space: nowrap;
   transition: all var(--transition);
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.15);
+  letter-spacing: 0.02em;
 }
-.auth-bar-btn:hover { background: rgba(0,229,255,0.08); border-color: var(--cyan); }
+.auth-bar-btn:hover {
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.2), rgba(224, 64, 251, 0.12));
+  border-color: var(--cyan);
+  box-shadow: 0 0 18px rgba(0, 229, 255, 0.25);
+  transform: translateY(-1px);
+}
+.auth-bar-btn:active {
+  transform: translateY(0);
+  box-shadow: 0 0 8px rgba(0, 229, 255, 0.2);
+}
 
 /* ====================================================
    AUTH MODAL
@@ -1583,15 +1594,23 @@ input[type="range"]::-webkit-slider-thumb {
 .cloud-save-banner.hidden { display: none !important; }
 
 .btn-cloud-login {
-  padding: 5px 14px;
+  padding: 8px 18px;
   border-radius: 50px;
-  border: 1px solid var(--cyan-dim, rgba(0,229,255,0.35));
-  background: transparent;
+  border: 1px solid rgba(0, 229, 255, 0.4);
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.12), rgba(224, 64, 251, 0.08));
   color: var(--cyan);
-  font-size: 0.78rem;
+  font-size: 0.85rem;
   font-weight: 600;
   cursor: pointer;
+  box-shadow: 0 0 12px rgba(0, 229, 255, 0.15);
+  transition: all var(--transition);
   white-space: nowrap;
   transition: all var(--transition);
 }
-.btn-cloud-login:hover { background: rgba(0,229,255,0.1); }
+.btn-cloud-login:hover {
+  background: linear-gradient(135deg, rgba(0, 229, 255, 0.2), rgba(224, 64, 251, 0.12));
+  border-color: var(--cyan);
+  box-shadow: 0 0 18px rgba(0, 229, 255, 0.25);
+  transform: translateY(-1px);
+}
+.btn-cloud-login:active { transform: translateY(0); }
