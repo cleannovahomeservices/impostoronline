@@ -14,13 +14,18 @@ const authState = {
    INIT — call once inside DOMContentLoaded
    ────────────────────────────────────────────────────────── */
 async function initAuth() {
+  // Wait for supabase-init.js to finish its async fetch
+  if (window.supabaseReady) await window.supabaseReady;
+
   if (!window.db) {
-    updateAuthUI();   // render "logged out" UI even without Supabase
+    console.warn('[auth] Supabase not available — auth disabled');
+    updateAuthUI();
     return;
   }
 
   // Restore session from storage or OAuth hash
-  const { data: { session } } = await window.db.auth.getSession();
+  const { data: { session }, error: sessionError } = await window.db.auth.getSession();
+  if (sessionError) console.error('[auth] getSession error:', sessionError);
   authState.session = session;
   authState.user    = session?.user ?? null;
   updateAuthUI();
@@ -74,15 +79,22 @@ function updateAuthUI() {
    AUTH ACTIONS
    ────────────────────────────────────────────────────────── */
 async function signInWithGoogle() {
-  if (!window.db) return;
-  await window.db.auth.signInWithOAuth({
+  if (window.supabaseReady) await window.supabaseReady;
+  if (!window.db) {
+    console.error('[auth] signInWithGoogle: Supabase client not initialised');
+    return;
+  }
+  console.log('[auth] starting Google OAuth redirect…');
+  const { error } = await window.db.auth.signInWithOAuth({
     provider: 'google',
-    options:  { redirectTo: window.location.origin + '/' },
+    options:  { redirectTo: 'https://www.impostor.click' },
   });
+  if (error) console.error('[auth] signInWithOAuth error:', error);
 }
 
 /** Returns null on success, Error object on failure */
 async function signInWithEmail(email, password) {
+  if (window.supabaseReady) await window.supabaseReady;
   if (!window.db) return new Error('Supabase not configured');
   const { error } = await window.db.auth.signInWithPassword({ email, password });
   return error ?? null;
@@ -90,6 +102,7 @@ async function signInWithEmail(email, password) {
 
 /** Returns null on success, { confirmEmail: true } when confirmation email sent, or Error */
 async function signUpWithEmail(email, password) {
+  if (window.supabaseReady) await window.supabaseReady;
   if (!window.db) return new Error('Supabase not configured');
   const { data, error } = await window.db.auth.signUp({ email, password });
   if (error) return error;

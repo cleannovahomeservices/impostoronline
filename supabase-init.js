@@ -1,23 +1,25 @@
 /* ============================================================
    SUPABASE CLIENT INIT — supabase-init.js
-   The anon key is safe to expose in frontend code.
-   RLS policies protect your data.
-   Find these values in: Supabase Dashboard → Settings → API
+   Fetches public config from /api/config (reads Vercel env vars).
+   Exposes window.supabaseReady (Promise) so auth.js can await it.
    ============================================================ */
-(function () {
-  var url = 'REPLACE_WITH_YOUR_SUPABASE_URL';       // e.g. https://abcxyz.supabase.co
-  var key = 'REPLACE_WITH_YOUR_SUPABASE_ANON_KEY';  // starts with eyJ...
-
-  if (!url || url.startsWith('REPLACE') || !key || key.startsWith('REPLACE')) {
-    console.warn('[supabase] supabase-init.js: fill in SUPABASE_URL and SUPABASE_ANON_KEY');
-    window.db = null;
-    return;
-  }
+window.db            = null;
+window.supabaseReady = (async function () {
   try {
-    window.db = supabase.createClient(url, key);
-    console.log('[supabase] client ready');
-  } catch (e) {
-    console.error('[supabase] init error:', e);
-    window.db = null;
+    const res = await fetch('/api/config');
+    if (!res.ok) throw new Error(`/api/config returned ${res.status}`);
+
+    const { supabaseUrl, supabaseAnon } = await res.json();
+    if (!supabaseUrl || !supabaseAnon) {
+      console.error('[supabase] /api/config returned empty URL or anon key');
+      return null;
+    }
+
+    window.db = supabase.createClient(supabaseUrl, supabaseAnon);
+    console.log('[supabase] client ready ✓');
+    return window.db;
+  } catch (err) {
+    console.error('[supabase] init error:', err);
+    return null;
   }
 })();
