@@ -37,25 +37,6 @@ async function initAuth() {
 
   console.log('[auth] Session on load:', session);
 
-  // #region agent log
-  fetch('http://127.0.0.1:7631/ingest/e2f31f58-c389-4ee7-8e4c-5cb68f037e83',{
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'X-Debug-Session-Id':'9a730d'
-    },
-    body:JSON.stringify({
-      sessionId:'9a730d',
-      runId:'pre-fix',
-      hypothesisId:'H2',
-      location:'auth.js:38',
-      message:'initAuth getSession result',
-      data:{ hasSession: !!session, email: session?.user?.email || null },
-      timestamp:Date.now()
-    })
-  }).catch(()=>{});
-  // #endregion agent log
-
   await handleAuthState(session);
 
   // ── 4. Keep UI in sync with future auth events ────────────
@@ -99,29 +80,6 @@ async function handleAuthState(session) {
     premiumState.checked = true;
     if (typeof updatePremiumUI === 'function') updatePremiumUI();
   }
-
-  // #region agent log
-  fetch('http://127.0.0.1:7631/ingest/e2f31f58-c389-4ee7-8e4c-5cb68f037e83',{
-    method:'POST',
-    headers:{
-      'Content-Type':'application/json',
-      'X-Debug-Session-Id':'9a730d'
-    },
-    body:JSON.stringify({
-      sessionId:'9a730d',
-      runId:'pre-fix',
-      hypothesisId:'H4',
-      location:'auth.js:76',
-      message:'handleAuthState applied',
-      data:{
-        hasUser: !!authState.user,
-        email: authState.user?.email || null,
-        isPremium: !!isPremium
-      },
-      timestamp:Date.now()
-    })
-  }).catch(()=>{});
-  // #endregion agent log
 }
 
 /* ── OAuth callback handler ─────────────────────────────────
@@ -152,25 +110,6 @@ async function handleAuthCallback() {
     } else {
       console.warn('[auth] Callback detected but no session found');
     }
-
-    // #region agent log
-    fetch('http://127.0.0.1:7631/ingest/e2f31f58-c389-4ee7-8e4c-5cb68f037e83',{
-      method:'POST',
-      headers:{
-        'Content-Type':'application/json',
-        'X-Debug-Session-Id':'9a730d'
-      },
-      body:JSON.stringify({
-        sessionId:'9a730d',
-        runId:'pre-fix',
-        hypothesisId:'H3',
-        location:'auth.js:108',
-        message:'handleAuthCallback outcome',
-        data:{ hasToken, hasCode, hasSession: !!session },
-        timestamp:Date.now()
-      })
-    }).catch(()=>{});
-    // #endregion agent log
   } catch (e) {
     console.error('[auth] handleAuthCallback exception:', e);
   }
@@ -306,26 +245,6 @@ function initAuthModal() {
       e.preventDefault();
       e.stopPropagation();
       console.log('[auth] Google login click (button listener fired)');
-
-      // #region agent log
-      fetch('http://127.0.0.1:7631/ingest/e2f31f58-c389-4ee7-8e4c-5cb68f037e83',{
-        method:'POST',
-        headers:{
-          'Content-Type':'application/json',
-          'X-Debug-Session-Id':'9a730d'
-        },
-        body:JSON.stringify({
-          sessionId:'9a730d',
-          runId:'pre-fix',
-          hypothesisId:'H2',
-          location:'auth.js:225',
-          message:'Google button click',
-          data:{ hasClient: !!window.supabaseClient },
-          timestamp:Date.now()
-        })
-      }).catch(()=>{});
-      // #endregion agent log
-
       signInWithGoogle();
     });
     console.log('[auth] ✓ #btn-auth-google listener attached');

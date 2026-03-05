@@ -33,9 +33,11 @@ window.supabaseReady = (async function () {
     window.supabaseClient = window.db;
 
     console.log('[supabase] ✓ client ready —', supabaseUrl);
+
     return window.supabaseClient;
   } catch (err) {
     console.error('[supabase] ✗ init failed:', err.message);
+
     return null;
   }
 })();
