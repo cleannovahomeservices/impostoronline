@@ -21,31 +21,6 @@ const premiumState = {
   checked: false,
 };
 
-function renderSubscriptionUI(meta) {
-  const actions = document.getElementById('subscription-actions');
-  const noteEl  = document.getElementById('subscription-note');
-
-  if (!actions) return;
-
-  const isPremium = !!meta?.premium;
-  actions.classList.toggle('hidden', !isPremium);
-
-  if (!noteEl) return;
-
-  const capEnd = !!meta?.cancelAtPeriodEnd;
-  const until  = meta?.currentPeriodEnd || null;
-
-  if (isPremium && capEnd) {
-    const dateStr = until ? new Date(until).toLocaleDateString() : '';
-    noteEl.textContent = dateStr
-      ? `Tu suscripción se cancelará al final del periodo actual (${dateStr}).`
-      : 'Tu suscripción se cancelará al final del periodo actual.';
-    noteEl.classList.remove('hidden');
-  } else {
-    noteEl.classList.add('hidden');
-  }
-}
-
 async function checkPremiumStatus({ silent = false } = {}) {
   const playerId = getPlayerId();
   console.log('[premium] checkPremiumStatus — usando playerId:', playerId);
@@ -59,12 +34,6 @@ async function checkPremiumStatus({ silent = false } = {}) {
     }
     const data = await res.json();
     renderPremiumUI(data.premium);
-    renderSubscriptionUI({
-      premium: data.premium,
-      cancelAtPeriodEnd: !!data.cancel_at_period_end,
-      currentPeriodEnd: data.current_period_end || null,
-      subscriptionStatus: data.subscription_status || null,
-    });
     return data.premium;
   } catch (err) {
     if (!silent) console.error('Premium check failed:', err);
@@ -110,12 +79,6 @@ async function handleCheckoutSuccess(sessionId) {
 
     if (data.premium) {
       renderPremiumUI(data.premium);
-      renderSubscriptionUI({
-        premium: data.premium,
-        cancelAtPeriodEnd: !!data.cancel_at_period_end,
-        currentPeriodEnd: data.current_period_end || null,
-        subscriptionStatus: data.subscription_status || null,
-      });
       showPremiumToast('¡Premium activado! Bienvenido ⭐');
       return;
     }
@@ -1067,11 +1030,6 @@ document.addEventListener('DOMContentLoaded', () => {
   initPremiumModal();
   initAuthModal();
   showScreen('screen-setup');
-
-  // Subscription portal button (always safe even if hidden)
-  document.getElementById('btn-manage-subscription')?.addEventListener('click', () => {
-    window.open('https://billing.stripe.com/p/login/14A00j3P6dte7CQ6XBdIA00', '_blank');
-  });
 
   // Auth + premium status (non-blocking)
   initAuth();

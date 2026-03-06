@@ -1394,26 +1394,62 @@ input[type="range"]::-webkit-slider-thumb {
   opacity: 1;
 }
 
-/* Subscription portal + cancellation note */
-.subscription-actions {
+/* Account section inside auth modal */
+.auth-account {
+  margin: 4px 0 16px;
+  padding: 8px 0 12px;
+  border-bottom: 1px solid var(--border);
+}
+
+.auth-account-heading {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+
+.auth-account-row {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   gap: 10px;
-  padding: 10px 20px 0;
-  flex-wrap: wrap;
+  font-size: 0.85rem;
+  margin-bottom: 4px;
 }
-.subscription-actions.hidden { display: none !important; }
 
-.subscription-note {
-  flex: 1 1 280px;
+.auth-account-label {
+  color: var(--text-muted);
+}
+
+.auth-account-value {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.auth-account-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 8px;
+}
+
+.auth-account-note {
+  margin-top: 8px;
+  font-size: 0.8rem;
   background: rgba(255, 193, 7, 0.08);
   border: 1px solid rgba(255, 193, 7, 0.25);
   color: rgba(255, 235, 59, 0.9);
   border-radius: var(--radius-sm);
-  padding: 8px 12px;
-  font-size: 0.82rem;
+  padding: 6px 10px;
 }
-.subscription-note.hidden { display: none !important; }
+.auth-account-note.hidden { display: none !important; }
+
+.auth-section-separator {
+  margin-top: 12px;
+  border: 0;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
 
 /* ====================================================
    AUTH BAR  (top of setup screen)

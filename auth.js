@@ -85,15 +85,7 @@ async function handleAuthState(session) {
     if (typeof updatePremiumUI === 'function') updatePremiumUI();
   }
 
-  // Subscription tools + cancellation message
-  if (typeof renderSubscriptionUI === 'function') {
-    renderSubscriptionUI({
-      premium: !!isPremium,
-      cancelAtPeriodEnd: !!authState.premiumMeta?.cancel_at_period_end,
-      currentPeriodEnd: authState.premiumMeta?.current_period_end || null,
-      subscriptionStatus: authState.premiumMeta?.subscription_status || null,
-    });
-  }
+  updateAccountSection();
 }
 
 /* ── OAuth callback handler ─────────────────────────────────
@@ -151,6 +143,11 @@ function updateAuthUI() {
     document.getElementById('btn-signout')?.addEventListener('click', signOut);
     document.getElementById('cloud-save-banner')?.classList.add('hidden');
     hideAuthModal();
+
+    const accountEmail = document.getElementById('account-email');
+    if (accountEmail && authState.user.email) {
+      accountEmail.textContent = authState.user.email;
+    }
   } else {
     bar.innerHTML = `
       <span class="auth-bar-hint">Inicia sesión para guardar listas en la nube</span>
@@ -317,6 +314,60 @@ function initAuthModal() {
 
   // ── Cloud-save banner shortcut ────────
   document.getElementById('btn-cloud-login')?.addEventListener('click', showAuthModal);
+
+  // ── Account section buttons ───────────
+  document.getElementById('btn-account-manage')?.addEventListener('click', () => {
+    window.open('https://billing.stripe.com/p/login/14A00j3P6dte7CQ6XBdIA00', '_blank');
+  });
+
+  document.getElementById('btn-account-upgrade')?.addEventListener('click', () => {
+    hideAuthModal();
+    if (typeof showPremiumModal === 'function') showPremiumModal();
+  });
+}
+
+function updateAccountSection() {
+  const section      = document.getElementById('auth-account-section');
+  const loginSection = document.getElementById('auth-login-section');
+  if (!section) return;
+
+  const hasUser = !!authState.user;
+  section.classList.toggle('hidden', !hasUser);
+  if (loginSection) loginSection.classList.toggle('hidden', hasUser);
+
+  if (!hasUser) return;
+
+  const emailEl = document.getElementById('account-email');
+  const planEl  = document.getElementById('account-plan');
+  const manage  = document.getElementById('btn-account-manage');
+  const upgrade = document.getElementById('btn-account-upgrade');
+  const noteEl  = document.getElementById('account-cancel-note');
+
+  if (emailEl && authState.user.email) {
+    emailEl.textContent = authState.user.email;
+  }
+
+  const meta      = authState.premiumMeta || {};
+  const isPremium = !!(meta && meta.is_premium === true);
+
+  if (planEl) planEl.textContent = isPremium ? 'Premium' : 'Free';
+  if (manage) manage.classList.toggle('hidden', !isPremium);
+  if (upgrade) upgrade.classList.toggle('hidden', isPremium);
+
+  if (!noteEl) return;
+
+  const capEnd = !!meta.cancel_at_period_end;
+  const until  = meta.current_period_end || null;
+
+  if (isPremium && capEnd) {
+    const dateStr = until ? new Date(until).toLocaleDateString() : '';
+    noteEl.textContent = dateStr
+      ? `Tu suscripción se cancelará al final del periodo actual (${dateStr}).`
+      : 'Tu suscripción se cancelará al final del periodo actual.';
+    noteEl.classList.remove('hidden');
+  } else {
+    noteEl.classList.add('hidden');
+  }
 }
 
 function _setAuthMode(register) {
