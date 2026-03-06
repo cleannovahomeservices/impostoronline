@@ -17,7 +17,7 @@ export default async function handler(req, res) {
 
   const { data, error } = await supabase
     .from('premium_players')
-    .select('is_premium')
+    .select('is_premium,current_period_end,subscription_status,cancel_at_period_end')
     .eq('player_id', playerId)
     .maybeSingle();
 
@@ -28,5 +28,11 @@ export default async function handler(req, res) {
 
   const premium = !!(data?.is_premium);
 
-  return res.status(200).json({ premium, until: null });
+  return res.status(200).json({
+    premium,
+    until: data?.current_period_end ?? null,
+    current_period_end: data?.current_period_end ?? null,
+    subscription_status: data?.subscription_status ?? null,
+    cancel_at_period_end: data?.cancel_at_period_end ?? false,
+  });
 }

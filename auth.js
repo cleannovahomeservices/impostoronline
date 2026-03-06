@@ -13,6 +13,7 @@ const authState = {
   user:    null,
   session: null,
   lists:   [],
+  premiumMeta: null,
 };
 
 /* ──────────────────────────────────────────────────────────
@@ -82,6 +83,16 @@ async function handleAuthState(session) {
     premiumState.premium = !!isPremium;
     premiumState.checked = true;
     if (typeof updatePremiumUI === 'function') updatePremiumUI();
+  }
+
+  // Subscription tools + cancellation message
+  if (typeof renderSubscriptionUI === 'function') {
+    renderSubscriptionUI({
+      premium: !!isPremium,
+      cancelAtPeriodEnd: !!authState.premiumMeta?.cancel_at_period_end,
+      currentPeriodEnd: authState.premiumMeta?.current_period_end || null,
+      subscriptionStatus: authState.premiumMeta?.subscription_status || null,
+    });
   }
 }
 
@@ -403,7 +414,7 @@ async function checkPremium(userOrNull) {
     if (userOrNull && userOrNull.id) {
       const { data, error } = await window.supabaseClient
         .from('premium_players')
-        .select('is_premium')
+        .select('is_premium,current_period_end,subscription_status,cancel_at_period_end')
         .eq('user_id', userOrNull.id)
         .maybeSingle();
 
@@ -411,6 +422,7 @@ async function checkPremium(userOrNull) {
         console.error('[premium] checkPremium(user) error:', error);
         return false;
       }
+      authState.premiumMeta = data || null;
       const premium = !!(data && data.is_premium === true);
       console.log('[premium] by user_id:', userOrNull.email, '→', premium);
       return premium;
@@ -425,7 +437,7 @@ async function checkPremium(userOrNull) {
 
     const { data, error } = await window.supabaseClient
       .from('premium_players')
-      .select('is_premium')
+      .select('is_premium,current_period_end,subscription_status,cancel_at_period_end')
       .eq('player_id', email)
       .maybeSingle();
 
@@ -433,6 +445,7 @@ async function checkPremium(userOrNull) {
       console.error('[premium] checkPremium(legacy) error:', error);
       return false;
     }
+    authState.premiumMeta = data || null;
     const premium = !!(data && data.is_premium === true);
     console.log('[premium] by player_id/email:', email, '→', premium);
     return premium;

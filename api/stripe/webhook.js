@@ -104,6 +104,56 @@ function toISO(unixSeconds) {
   return new Date(unixSeconds * 1000).toISOString();
 }
 
+function isAfterNow(isoString) {
+  if (!isoString) return false;
+  const t = Date.parse(isoString);
+  if (Number.isNaN(t)) return false;
+  return t > Date.now();
+}
+
+function computeIsPremium({ status, currentPeriodEnd, cancelAtPeriodEnd }) {
+  const activeLike = ['active', 'trialing'].includes(status);
+  if (activeLike) return true;
+
+  // If canceled/unpaid/etc but the paid period is still running, keep access
+  const keepUntilEndStatuses = ['canceled', 'unpaid', 'incomplete_expired', 'past_due'];
+  if (keepUntilEndStatuses.includes(status) && isAfterNow(currentPeriodEnd)) return true;
+
+  // cancel_at_period_end alone never removes access early
+  if (cancelAtPeriodEnd && isAfterNow(currentPeriodEnd)) return true;
+
+  return false;
+}
+
+async function findPremiumRow(supabase, { stripeCustomerId, stripeSubscriptionId, userId, playerId }) {
+  // Order required by user:
+  // 1) stripe_customer_id
+  // 2) stripe_subscription_id
+  // 3) user_id
+  // 4) player_id/email
+  const tryOne = async (col, val) => {
+    if (!val) return null;
+    const { data, error } = await supabase
+      .from('premium_players')
+      .select('player_id,current_period_end')
+      .eq(col, val)
+      .maybeSingle();
+    if (error && error.code !== 'PGRST116') {
+      console.error('[webhook] ❌ findPremiumRow error on', col, ':', JSON.stringify(error));
+      return null;
+    }
+    return data || null;
+  };
+
+  return (
+    (await tryOne('stripe_customer_id', stripeCustomerId)) ||
+    (await tryOne('stripe_subscription_id', stripeSubscriptionId)) ||
+    (await tryOne('user_id', userId)) ||
+    (await tryOne('player_id', playerId)) ||
+    null
+  );
+}
+
 // ─── Handler ──────────────────────────────────────────────────────────────────
 export default async function handler(req, res) {
   // Only accept POST
@@ -198,17 +248,20 @@ export default async function handler(req, res) {
           break;
         }
 
-        // Retrieve subscription for current_period_end
+        // Retrieve subscription for full state
         let periodEnd = null;
         let subStatus = 'active';
+        let cancelAtPeriodEnd = false;
 
         if (session.subscription) {
           try {
             const sub = await stripe.subscriptions.retrieve(session.subscription);
             subStatus = sub.status;
             periodEnd = toISO(sub.current_period_end);
+            cancelAtPeriodEnd = !!sub.cancel_at_period_end;
             console.log('[webhook]   sub status    :', subStatus);
             console.log('[webhook]   period_end    :', periodEnd);
+            console.log('[webhook]   cancel_at_period_end:', cancelAtPeriodEnd);
           } catch (subErr) {
             console.error('[webhook] ⚠️  subscription.retrieve failed:', subErr.message);
             // Fall back to 30 days from now so is_premium can be set
@@ -217,7 +270,11 @@ export default async function handler(req, res) {
           }
         }
 
-        const isPremium = ['active', 'trialing'].includes(subStatus);
+        const isPremium = computeIsPremium({
+          status: subStatus,
+          currentPeriodEnd: periodEnd,
+          cancelAtPeriodEnd,
+        });
 
         const { error: upsertErr } = await supabase
           .from('premium_players')
@@ -228,6 +285,8 @@ export default async function handler(req, res) {
               stripe_customer_id:     session.customer     ?? null,
               stripe_subscription_id: session.subscription ?? null,
               current_period_end:     periodEnd,
+              subscription_status:    subStatus ?? null,
+              cancel_at_period_end:   cancelAtPeriodEnd,
               updated_at:             new Date().toISOString(),
             },
             { onConflict: 'player_id' },
@@ -244,19 +303,34 @@ export default async function handler(req, res) {
       // ── customer.subscription.updated ─────────────────────────────────────
       case 'customer.subscription.updated': {
         const sub = event.data.object;
-        const isPremium  = ['active', 'trialing'].includes(sub.status);
         const periodEnd  = toISO(sub.current_period_end);
+        const isPremium  = computeIsPremium({
+          status: sub.status,
+          currentPeriodEnd: periodEnd,
+          cancelAtPeriodEnd: !!sub.cancel_at_period_end,
+        });
 
         console.log('[webhook] subscription.updated id:', sub.id, '| status:', sub.status, '| period_end:', periodEnd);
 
-        const { error } = await supabase
-          .from('premium_players')
+        const existing = await findPremiumRow(supabase, {
+          stripeCustomerId: sub.customer ?? null,
+          stripeSubscriptionId: sub.id,
+        });
+
+        if (!existing?.player_id) {
+          console.warn('[webhook] ⚠️ subscription.updated: no matching premium_players row found for sub/customer');
+          break;
+        }
+
+        const { error } = await supabase.from('premium_players')
           .update({
-            is_premium:         isPremium,
-            current_period_end: periodEnd,
-            updated_at:         new Date().toISOString(),
+            is_premium:           isPremium,
+            current_period_end:   periodEnd,
+            subscription_status:  sub.status ?? null,
+            cancel_at_period_end: !!sub.cancel_at_period_end,
+            updated_at:           new Date().toISOString(),
           })
-          .eq('stripe_subscription_id', sub.id);
+          .eq('player_id', existing.player_id);
 
         if (error) console.error('[webhook] ❌ update FAILED:', JSON.stringify(error));
         else       console.log('[webhook] ✅ subscription.updated OK');
@@ -268,13 +342,74 @@ export default async function handler(req, res) {
         const sub = event.data.object;
         console.log('[webhook] subscription.deleted id:', sub.id);
 
-        const { error } = await supabase
-          .from('premium_players')
-          .update({ is_premium: false, updated_at: new Date().toISOString() })
-          .eq('stripe_subscription_id', sub.id);
+        const existing = await findPremiumRow(supabase, {
+          stripeCustomerId: sub.customer ?? null,
+          stripeSubscriptionId: sub.id,
+        });
+
+        if (!existing?.player_id) {
+          console.warn('[webhook] ⚠️ subscription.deleted: no matching premium_players row found for sub/customer');
+          break;
+        }
+
+        const { error } = await supabase.from('premium_players')
+          .update({
+            is_premium:           false,
+            subscription_status:  'canceled',
+            cancel_at_period_end: false,
+            updated_at:           new Date().toISOString(),
+          })
+          .eq('player_id', existing.player_id);
 
         if (error) console.error('[webhook] ❌ update FAILED:', JSON.stringify(error));
         else       console.log('[webhook] ✅ subscription.deleted OK');
+        break;
+      }
+
+      // ── invoice.paid ───────────────────────────────────────────────────────
+      case 'invoice.paid': {
+        const invoice = event.data.object;
+        const subId   = invoice.subscription ?? null;
+        const custId  = invoice.customer ?? null;
+        console.log('[webhook] invoice.paid | subscription:', subId);
+        if (!subId) break;
+
+        let sub;
+        try {
+          sub = await stripe.subscriptions.retrieve(subId);
+        } catch (e) {
+          console.error('[webhook] ⚠️ invoice.paid subscription.retrieve failed:', e.message);
+          break;
+        }
+
+        const periodEnd = toISO(sub.current_period_end);
+        const isPremium = computeIsPremium({
+          status: sub.status,
+          currentPeriodEnd: periodEnd,
+          cancelAtPeriodEnd: !!sub.cancel_at_period_end,
+        });
+
+        const existing = await findPremiumRow(supabase, {
+          stripeCustomerId: custId,
+          stripeSubscriptionId: subId,
+        });
+        if (!existing?.player_id) {
+          console.warn('[webhook] ⚠️ invoice.paid: no matching premium_players row found for sub/customer');
+          break;
+        }
+
+        const { error } = await supabase.from('premium_players')
+          .update({
+            is_premium:           isPremium,
+            current_period_end:   periodEnd,
+            subscription_status:  sub.status ?? null,
+            cancel_at_period_end: !!sub.cancel_at_period_end,
+            updated_at:           new Date().toISOString(),
+          })
+          .eq('player_id', existing.player_id);
+
+        if (error) console.error('[webhook] ❌ invoice.paid update FAILED:', JSON.stringify(error));
+        else       console.log('[webhook] ✅ invoice.paid handled OK');
         break;
       }
 
@@ -282,14 +417,39 @@ export default async function handler(req, res) {
       case 'invoice.payment_failed': {
         const invoice = event.data.object;
         const subId   = invoice.subscription ?? null;
+        const custId  = invoice.customer ?? null;
         console.log('[webhook] invoice.payment_failed | subscription:', subId);
 
         if (!subId) break;
 
-        const { error } = await supabase
-          .from('premium_players')
-          .update({ is_premium: false, updated_at: new Date().toISOString() })
-          .eq('stripe_subscription_id', subId);
+        // Do NOT remove premium immediately — keep access until period end.
+        // Only update subscription_status (+ related metadata).
+        let sub;
+        try {
+          sub = await stripe.subscriptions.retrieve(subId);
+        } catch (e) {
+          console.error('[webhook] ⚠️ invoice.payment_failed subscription.retrieve failed:', e.message);
+          sub = null;
+        }
+
+        const existing = await findPremiumRow(supabase, {
+          stripeCustomerId: custId,
+          stripeSubscriptionId: subId,
+        });
+
+        if (!existing?.player_id) {
+          console.warn('[webhook] ⚠️ invoice.payment_failed: no matching premium_players row found for sub/customer');
+          break;
+        }
+
+        const { error } = await supabase.from('premium_players')
+          .update({
+            subscription_status:  sub?.status ?? 'payment_failed',
+            cancel_at_period_end: sub ? !!sub.cancel_at_period_end : undefined,
+            current_period_end:   sub ? toISO(sub.current_period_end) : undefined,
+            updated_at:           new Date().toISOString(),
+          })
+          .eq('player_id', existing.player_id);
 
         if (error) console.error('[webhook] ❌ update FAILED:', JSON.stringify(error));
         else       console.log('[webhook] ✅ invoice.payment_failed handled OK');

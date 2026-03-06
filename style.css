@@ -1,26 +1,31 @@
-/* ===== DESIGN TOKENS ===== */
+/* ===== DESIGN TOKENS (neón espacial / gaming) ===== */
 :root {
-  --bg: #0d0d1a;
-  --card-bg: #1a1a2e;
+  --bg: #0a0a16;
+  --card-bg: rgba(26, 26, 46, 0.85);
+  --card-bg-solid: #1a1a2e;
   --card-bg-2: #16213e;
   --primary: #e040fb;
   --primary-dim: #9c27b0;
   --cyan: #00e5ff;
   --cyan-dim: #0097a7;
+  --neon-purple: #ff00ff;
+  --neon-cyan: #00ffff;
   --player-color: #00c853;
   --player-dim: #1b5e20;
   --impostor-color: #ff6b35;
   --impostor-dim: #b71c1c;
   --text: #e8eaf6;
   --text-muted: #7986cb;
-  --border: #2a2a4a;
+  --border: rgba(42, 42, 74, 0.9);
+  --border-neon: rgba(0, 229, 255, 0.35);
   --danger: #f44336;
   --success: #4caf50;
-  --shadow-glow: 0 0 20px rgba(224, 64, 251, 0.3);
-  --shadow-cyan: 0 0 20px rgba(0, 229, 255, 0.3);
+  --shadow-glow: 0 0 24px rgba(224, 64, 251, 0.4);
+  --shadow-cyan: 0 0 24px rgba(0, 229, 255, 0.4);
   --radius: 14px;
   --radius-sm: 8px;
   --transition: 0.25s ease;
+  --glass-blur: 12px;
 }
 
 /* ===== RESET & BASE ===== */
@@ -31,23 +36,36 @@ html { font-size: 16px; scroll-behavior: smooth; }
 body {
   background: var(--bg);
   color: var(--text);
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
   line-height: 1.5;
 }
 
-/* Background star noise */
+/* Nebula / estrellas estáticas de fondo */
 body::before {
   content: '';
   position: fixed;
   inset: 0;
   background-image:
-    radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.15) 0%, transparent 100%),
-    radial-gradient(1px 1px at 80% 10%, rgba(255,255,255,0.1) 0%, transparent 100%),
-    radial-gradient(1px 1px at 50% 70%, rgba(255,255,255,0.08) 0%, transparent 100%),
-    radial-gradient(1px 1px at 10% 90%, rgba(255,255,255,0.12) 0%, transparent 100%),
-    radial-gradient(1px 1px at 90% 60%, rgba(255,255,255,0.09) 0%, transparent 100%);
+    radial-gradient(ellipse 80% 50% at 50% 0%, rgba(224, 64, 251, 0.08) 0%, transparent 50%),
+    radial-gradient(ellipse 60% 40% at 80% 80%, rgba(0, 229, 255, 0.06) 0%, transparent 45%),
+    radial-gradient(1px 1px at 20% 30%, rgba(255,255,255,0.2) 0%, transparent 100%),
+    radial-gradient(1px 1px at 80% 10%, rgba(255,255,255,0.12) 0%, transparent 100%),
+    radial-gradient(1px 1px at 50% 70%, rgba(255,255,255,0.1) 0%, transparent 100%),
+    radial-gradient(1px 1px at 10% 90%, rgba(255,255,255,0.14) 0%, transparent 100%),
+    radial-gradient(1px 1px at 90% 60%, rgba(255,255,255,0.1) 0%, transparent 100%);
+  pointer-events: none;
+  z-index: 0;
+}
+
+/* Canvas estrellas (particles.js) detrás del contenido */
+#stars-canvas {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
   pointer-events: none;
   z-index: 0;
 }
@@ -65,6 +83,15 @@ body::before {
 
 .screen.active { display: flex; }
 
+.screen.active .container {
+  animation: animate-fade-in 0.4s ease;
+}
+
+@keyframes animate-fade-in {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
 .container {
   width: 100%;
   max-width: 520px;
@@ -74,8 +101,9 @@ body::before {
 h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; }
 
 .logo {
-  font-size: 2rem;
-  font-weight: 900;
+  font-family: 'Space Grotesk', sans-serif;
+  font-size: clamp(1.75rem, 5vw, 2.25rem);
+  font-weight: 800;
   background: linear-gradient(135deg, var(--primary), var(--cyan));
   -webkit-background-clip: text;
   -webkit-text-fill-color: transparent;
@@ -83,24 +111,42 @@ h1, h2, h3 { font-weight: 700; letter-spacing: -0.02em; }
   text-align: center;
   margin-bottom: 4px;
   filter: drop-shadow(0 0 12px rgba(224,64,251,0.5));
+  letter-spacing: -0.02em;
+}
+
+.logo-neon {
+  animation: glow-pulse 3s ease-in-out infinite;
+}
+
+@keyframes glow-pulse {
+  0%, 100% { filter: drop-shadow(0 0 12px rgba(224,64,251,0.5)); }
+  50%  { filter: drop-shadow(0 0 20px rgba(224,64,251,0.7)) drop-shadow(0 0 30px rgba(0,229,255,0.3)); }
 }
 
 .logo-sub {
   text-align: center;
   color: var(--text-muted);
-  font-size: 0.85rem;
+  font-size: clamp(0.75rem, 2.5vw, 0.85rem);
   margin-bottom: 28px;
   letter-spacing: 0.08em;
   text-transform: uppercase;
 }
 
-/* ===== CARDS ===== */
+/* ===== CARDS (glassmorphism) ===== */
 .card {
   background: var(--card-bg);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--border);
   border-radius: var(--radius);
-  padding: 20px;
+  padding: clamp(16px, 4vw, 20px);
   margin-bottom: 16px;
+  box-shadow: 0 4px 24px rgba(0, 0, 0, 0.2);
+  transition: box-shadow var(--transition), border-color var(--transition);
+}
+.card:hover {
+  border-color: var(--border-neon);
+  box-shadow: 0 4px 28px rgba(0, 0, 0, 0.25), 0 0 20px rgba(0, 229, 255, 0.06);
 }
 
 .card-title {
@@ -1348,6 +1394,27 @@ input[type="range"]::-webkit-slider-thumb {
   opacity: 1;
 }
 
+/* Subscription portal + cancellation note */
+.subscription-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 20px 0;
+  flex-wrap: wrap;
+}
+.subscription-actions.hidden { display: none !important; }
+
+.subscription-note {
+  flex: 1 1 280px;
+  background: rgba(255, 193, 7, 0.08);
+  border: 1px solid rgba(255, 193, 7, 0.25);
+  color: rgba(255, 235, 59, 0.9);
+  border-radius: var(--radius-sm);
+  padding: 8px 12px;
+  font-size: 0.82rem;
+}
+.subscription-note.hidden { display: none !important; }
+
 /* ====================================================
    AUTH BAR  (top of setup screen)
    ==================================================== */
@@ -1439,7 +1506,9 @@ input[type="range"]::-webkit-slider-thumb {
 .auth-modal-backdrop.hidden { display: none !important; }
 
 .auth-modal {
-  background: var(--card-bg);
+  background: rgba(26, 26, 46, 0.92);
+  backdrop-filter: blur(var(--glass-blur));
+  -webkit-backdrop-filter: blur(var(--glass-blur));
   border: 1px solid var(--border);
   border-radius: var(--radius);
   padding: 28px 24px 24px;
