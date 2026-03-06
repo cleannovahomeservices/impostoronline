@@ -104,6 +104,13 @@ function toISO(unixSeconds) {
   return new Date(unixSeconds * 1000).toISOString();
 }
 
+// Read current_period_end from a Stripe subscription object and convert
+// it to an ISO string suitable for a Supabase timestamptz column.
+function stripePeriodEndToTimestamp(sub) {
+  if (!sub || !sub.current_period_end) return null;
+  return new Date(sub.current_period_end * 1000).toISOString();
+}
+
 function isAfterNow(isoString) {
   if (!isoString) return false;
   const t = Date.parse(isoString);
@@ -256,8 +263,8 @@ export default async function handler(req, res) {
         if (session.subscription) {
           try {
             const sub = await stripe.subscriptions.retrieve(session.subscription);
-            subStatus = sub.status;
-            periodEnd = toISO(sub.current_period_end);
+            subStatus       = sub.status;
+            periodEnd       = stripePeriodEndToTimestamp(sub);
             cancelAtPeriodEnd = !!sub.cancel_at_period_end;
             console.log('[webhook]   sub status    :', subStatus);
             console.log('[webhook]   period_end    :', periodEnd);
@@ -303,7 +310,7 @@ export default async function handler(req, res) {
       // ── customer.subscription.updated ─────────────────────────────────────
       case 'customer.subscription.updated': {
         const sub = event.data.object;
-        const periodEnd  = toISO(sub.current_period_end);
+        const periodEnd  = stripePeriodEndToTimestamp(sub);
         const isPremium  = computeIsPremium({
           status: sub.status,
           currentPeriodEnd: periodEnd,
@@ -382,7 +389,7 @@ export default async function handler(req, res) {
           break;
         }
 
-        const periodEnd = toISO(sub.current_period_end);
+        const periodEnd = stripePeriodEndToTimestamp(sub);
         const isPremium = computeIsPremium({
           status: sub.status,
           currentPeriodEnd: periodEnd,
@@ -446,7 +453,7 @@ export default async function handler(req, res) {
           .update({
             subscription_status:  sub?.status ?? 'payment_failed',
             cancel_at_period_end: sub ? !!sub.cancel_at_period_end : undefined,
-            current_period_end:   sub ? toISO(sub.current_period_end) : undefined,
+            current_period_end:   sub ? stripePeriodEndToTimestamp(sub) : undefined,
             updated_at:           new Date().toISOString(),
           })
           .eq('player_id', existing.player_id);
