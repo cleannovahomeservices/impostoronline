@@ -11,3 +11,8 @@ Thumbs.db
 # Editor
 .vscode/
 .cursor/
+
+# Env (never commit secrets)
+.env
+.env.local
+.env.*.local

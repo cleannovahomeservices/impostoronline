@@ -70,11 +70,13 @@ async function handleCheckoutSuccess(sessionId) {
 
     const data = await res.json();
 
-    if (data.email) {
-      // Persist email as the device's playerId / player_email so legacy premium lookups work
-      localStorage.setItem('playerId', data.email);
-      localStorage.setItem('player_email', data.email);
-      console.log('[premium] email stored as playerId/player_email:', data.email);
+    // Prefer account email when logged in so premium stays tied to account (not wallet email)
+    const user = (typeof window.getAuthUser === 'function') ? window.getAuthUser() : null;
+    const emailToStore = (user && user.email) ? user.email : (data.email || null);
+    if (emailToStore) {
+      localStorage.setItem('playerId', emailToStore);
+      localStorage.setItem('player_email', emailToStore);
+      console.log('[premium] email stored as playerId/player_email:', emailToStore, user ? '(account)' : '');
     }
 
     if (data.premium) {
@@ -159,11 +161,18 @@ function initPremiumModal() {
     if (btnText) btnText.textContent = 'Redirigiendo…';
 
     try {
+      if (window.supabaseReady) await window.supabaseReady;
+      const user = (typeof window.getAuthUser === 'function') ? window.getAuthUser() : null;
       const playerId = getPlayerId();
+      const body = { playerId };
+      if (user && user.id && user.email) {
+        body.user_id = user.id;
+        body.user_email = user.email;
+      }
       const res = await fetch('/api/stripe/create-checkout-session', {
         method:  'POST',
         headers: { 'Content-Type': 'application/json' },
-        body:    JSON.stringify({ playerId }),
+        body:    JSON.stringify(body),
       });
 
       // Guard: if the server returned HTML instead of JSON, surface a clear error

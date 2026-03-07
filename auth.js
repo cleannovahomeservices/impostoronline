@@ -557,3 +557,8 @@ function getLocalPremiumEmail() {
 
   return null;
 }
+
+/** For checkout: get current Supabase user so premium is tied to account when logged in. */
+window.getAuthUser = function () {
+  return (typeof authState !== 'undefined' && authState.user) ? authState.user : null;
+};

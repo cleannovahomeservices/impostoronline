@@ -237,21 +237,29 @@ export default async function handler(req, res) {
       // ── checkout.session.completed ────────────────────────────────────────
       case 'checkout.session.completed': {
         const session = event.data.object;
-
-        const email    = session.customer_details?.email   ?? null;
-        const playerId = email
+        const metadataUserId    = session.metadata?.user_id    ?? null;
+        const metadataUserEmail = session.metadata?.user_email ?? null;
+        const email             = session.customer_details?.email ?? null;
+        const fallbackPlayerId  = email
           || session.client_reference_id
           || session.metadata?.playerId
           || null;
 
         console.log('[webhook] checkout.session.completed');
-        console.log('[webhook]   email         :', email);
-        console.log('[webhook]   player_id     :', playerId);
-        console.log('[webhook]   customer      :', session.customer);
-        console.log('[webhook]   subscription  :', session.subscription);
+        console.log('[webhook]   metadata.user_id    :', metadataUserId);
+        console.log('[webhook]   metadata.user_email :', metadataUserEmail);
+        console.log('[webhook]   stripe email        :', email);
+        console.log('[webhook]   fallback player_id  :', fallbackPlayerId);
+        console.log('[webhook]   customer            :', session.customer);
+        console.log('[webhook]   subscription        :', session.subscription);
+
+        // Resolve effective player_id: when user was logged in, use account email so premium ties to account
+        const playerId = (metadataUserId && metadataUserEmail)
+          ? metadataUserEmail
+          : fallbackPlayerId;
 
         if (!playerId) {
-          console.error('[webhook] ❌ No player_id found — skipping upsert');
+          console.error('[webhook] ❌ No player_id/user_id found — skipping upsert');
           break;
         }
 
@@ -271,7 +279,6 @@ export default async function handler(req, res) {
             console.log('[webhook]   cancel_at_period_end:', cancelAtPeriodEnd);
           } catch (subErr) {
             console.error('[webhook] ⚠️  subscription.retrieve failed:', subErr.message);
-            // Fall back to 30 days from now so is_premium can be set
             periodEnd = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
             console.log('[webhook]   period_end fallback:', periodEnd);
           }
@@ -283,26 +290,71 @@ export default async function handler(req, res) {
           cancelAtPeriodEnd,
         });
 
-        const { error: upsertErr } = await supabase
-          .from('premium_players')
-          .upsert(
-            {
-              player_id:              playerId,
-              is_premium:             isPremium,
-              stripe_customer_id:     session.customer     ?? null,
-              stripe_subscription_id: session.subscription ?? null,
-              current_period_end:     periodEnd,
-              subscription_status:    subStatus ?? null,
-              cancel_at_period_end:   cancelAtPeriodEnd,
-              updated_at:             new Date().toISOString(),
-            },
-            { onConflict: 'player_id' },
-          );
+        const row = {
+          player_id:              playerId,
+          is_premium:             isPremium,
+          stripe_customer_id:     session.customer     ?? null,
+          stripe_subscription_id: session.subscription ?? null,
+          current_period_end:     periodEnd,
+          subscription_status:    subStatus ?? null,
+          cancel_at_period_end:   cancelAtPeriodEnd,
+          updated_at:             new Date().toISOString(),
+        };
+        if (metadataUserId) row.user_id = metadataUserId;
 
-        if (upsertErr) {
-          console.error('[webhook] ❌ Supabase upsert FAILED:', JSON.stringify(upsertErr));
+        if (metadataUserId) {
+          // Logged-in checkout: prefer user_id, merge into one row, ignore wallet email
+          const byUserId = await supabase
+            .from('premium_players')
+            .select('player_id')
+            .eq('user_id', metadataUserId)
+            .maybeSingle();
+          const byPlayerId = await supabase
+            .from('premium_players')
+            .select('player_id')
+            .eq('player_id', metadataUserEmail)
+            .maybeSingle();
+
+          if (byUserId.data?.player_id) {
+            const { error: upErr } = await supabase
+              .from('premium_players')
+              .update(row)
+              .eq('user_id', metadataUserId);
+            if (upErr) {
+              console.error('[webhook] ❌ Supabase update by user_id FAILED:', JSON.stringify(upErr));
+            } else {
+              console.log('[webhook] ✅ Supabase update by user_id OK — user_id:', metadataUserId);
+            }
+          } else if (byPlayerId.data?.player_id) {
+            const { error: upErr } = await supabase
+              .from('premium_players')
+              .update(row)
+              .eq('player_id', metadataUserEmail);
+            if (upErr) {
+              console.error('[webhook] ❌ Supabase update by player_id FAILED:', JSON.stringify(upErr));
+            } else {
+              console.log('[webhook] ✅ Supabase update by player_id (merge) OK — player_id:', metadataUserEmail);
+            }
+          } else {
+            const { error: insErr } = await supabase
+              .from('premium_players')
+              .upsert(row, { onConflict: 'player_id' });
+            if (insErr) {
+              console.error('[webhook] ❌ Supabase insert (user_id) FAILED:', JSON.stringify(insErr));
+            } else {
+              console.log('[webhook] ✅ Supabase insert with user_id OK — player_id:', playerId);
+            }
+          }
         } else {
-          console.log('[webhook] ✅ Supabase upsert OK — player_id:', playerId);
+          // No user_id: legacy behavior — upsert by player_id only
+          const { error: upsertErr } = await supabase
+            .from('premium_players')
+            .upsert(row, { onConflict: 'player_id' });
+          if (upsertErr) {
+            console.error('[webhook] ❌ Supabase upsert FAILED:', JSON.stringify(upsertErr));
+          } else {
+            console.log('[webhook] ✅ Supabase upsert OK — player_id:', playerId);
+          }
         }
         break;
       }
