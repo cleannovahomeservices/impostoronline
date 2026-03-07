@@ -30,6 +30,10 @@
       <button type="button" class="auth-bar-btn" id="btn-signin-bar">Iniciar sesión</button>
     </div>
 
+    <div id="pwa-install-wrap" class="pwa-install-wrap hidden" aria-hidden="true">
+      <button type="button" class="btn-install-app" id="btn-install-app">Instalar app</button>
+    </div>
+
     <div class="container">
       <div class="logo logo-neon">Juego Impostor</div>
       <div class="logo-sub">Encuentra al impostor entre vosotros</div>
@@ -398,6 +402,16 @@
       <p class="auth-manage-subscription-text">¿Quieres gestionar o cancelar tu suscripción?</p>
       <button type="button" class="btn-auth-manage-subscription" id="btn-auth-manage-subscription">Gestionar suscripción</button>
     </div>
+  </div>
+</div>
+
+<!-- Ayuda instalación en iPhone (sin beforeinstallprompt) -->
+<div id="pwa-ios-help" class="pwa-ios-help hidden" role="dialog" aria-modal="true" aria-labelledby="pwa-ios-help-title">
+  <div class="pwa-ios-help-backdrop" id="pwa-ios-help-backdrop"></div>
+  <div class="pwa-ios-help-inner">
+    <h3 class="pwa-ios-help-title" id="pwa-ios-help-title">Instalar en iPhone</h3>
+    <p class="pwa-ios-help-text">Pulsa <strong>Compartir</strong> y luego <strong>Añadir a pantalla de inicio</strong>.</p>
+    <button type="button" class="btn-install-app pwa-ios-help-close" id="pwa-ios-help-close">Entendido</button>
   </div>
 </div>
 

@@ -1,4 +1,4 @@
-const CACHE = 'impostor-v6';
+const CACHE = 'impostor-v7';
 const STATIC = [
   '/',
   '/index.html',

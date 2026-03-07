@@ -1028,6 +1028,71 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+/* ==================== PWA — Instalar app ==================== */
+(function initPwaInstall() {
+  const wrap = document.getElementById('pwa-install-wrap');
+  const btn = document.getElementById('btn-install-app');
+  const iosHelp = document.getElementById('pwa-ios-help');
+  const iosHelpBackdrop = document.getElementById('pwa-ios-help-backdrop');
+  const iosHelpClose = document.getElementById('pwa-ios-help-close');
+
+  if (!wrap || !btn) return;
+
+  let deferredPrompt = null;
+  const isStandalone = () =>
+    window.matchMedia('(display-mode: standalone)').matches ||
+    !!window.navigator.standalone;
+  const isIOS = () => /iPad|iPhone|iPod/.test(navigator.userAgent);
+
+  function showInstallButton() {
+    if (isStandalone()) return;
+    wrap.classList.remove('hidden');
+    wrap.setAttribute('aria-hidden', 'false');
+  }
+  function hideInstallButton() {
+    wrap.classList.add('hidden');
+    wrap.setAttribute('aria-hidden', 'true');
+  }
+
+  window.addEventListener('beforeinstallprompt', (e) => {
+    e.preventDefault();
+    deferredPrompt = e;
+    showInstallButton();
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    hideInstallButton();
+  });
+
+  if (isStandalone()) {
+    hideInstallButton();
+  } else if (isIOS()) {
+    showInstallButton();
+  }
+
+  btn.addEventListener('click', async () => {
+    if (deferredPrompt) {
+      deferredPrompt.prompt();
+      const { outcome } = await deferredPrompt.userChoice;
+      if (outcome === 'accepted') {
+        deferredPrompt = null;
+        hideInstallButton();
+      }
+      return;
+    }
+    if (isIOS() && iosHelp) {
+      iosHelp.classList.remove('hidden');
+    }
+  });
+
+  function closeIosHelp() {
+    if (iosHelp) iosHelp.classList.add('hidden');
+  }
+  iosHelpBackdrop?.addEventListener('click', closeIosHelp);
+  iosHelpClose?.addEventListener('click', closeIosHelp);
+})();
+
 /* ==================== BOOT ==================== */
 document.addEventListener('DOMContentLoaded', () => {
   if (typeof initParticles === 'function') initParticles();

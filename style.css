@@ -1711,6 +1711,88 @@ input[type="range"]::-webkit-slider-thumb {
 }
 
 /* ====================================================
+   PWA — Instalar app
+   ==================================================== */
+.pwa-install-wrap {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 10px 16px 14px;
+  margin: 0 auto;
+}
+.pwa-install-wrap.hidden {
+  display: none !important;
+}
+
+.btn-install-app {
+  padding: 10px 22px;
+  font-size: 0.88rem;
+  font-weight: 600;
+  color: var(--cyan);
+  background: rgba(12, 12, 24, 0.95);
+  border: 1px solid rgba(0, 229, 255, 0.5);
+  border-radius: 10px;
+  cursor: pointer;
+  box-shadow: 0 0 14px rgba(0, 229, 255, 0.12);
+  transition: border-color 0.2s ease, box-shadow 0.2s ease, background 0.2s ease;
+}
+.btn-install-app:hover {
+  border-color: var(--cyan);
+  box-shadow: 0 0 20px rgba(0, 229, 255, 0.25);
+  background: rgba(0, 229, 255, 0.08);
+}
+.btn-install-app:active {
+  transform: scale(0.98);
+}
+
+/* Ayuda instalación iPhone */
+.pwa-ios-help {
+  position: fixed;
+  inset: 0;
+  z-index: 1020;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+}
+.pwa-ios-help.hidden {
+  display: none !important;
+}
+.pwa-ios-help-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.7);
+}
+.pwa-ios-help-inner {
+  position: relative;
+  background: rgba(26, 26, 46, 0.96);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  padding: 24px;
+  max-width: 320px;
+  text-align: center;
+  box-shadow: 0 0 30px rgba(0, 229, 255, 0.1);
+}
+.pwa-ios-help-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--text);
+  margin: 0 0 12px;
+}
+.pwa-ios-help-text {
+  font-size: 0.88rem;
+  color: var(--text-muted);
+  line-height: 1.45;
+  margin: 0 0 18px;
+}
+.pwa-ios-help-text strong {
+  color: var(--cyan);
+}
+.pwa-ios-help-close {
+  width: 100%;
+}
+
+/* ====================================================
    CLOUD-SAVE BANNER  (inside panel-write)
    ==================================================== */
 .cloud-save-banner {
