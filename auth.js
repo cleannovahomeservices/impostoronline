@@ -320,6 +320,11 @@ function initAuthModal() {
     window.open('https://billing.stripe.com/p/login/14A00j3P6dte7CQ6XBdIA00', '_blank');
   });
 
+  // ── Gestionar suscripción (siempre visible en el modal) ───────────
+  document.getElementById('btn-auth-manage-subscription')?.addEventListener('click', () => {
+    window.open('https://billing.stripe.com/p/login/14A00j3P6dte7CQ6XBdIA00', '_blank');
+  });
+
   document.getElementById('btn-account-upgrade')?.addEventListener('click', () => {
     hideAuthModal();
     if (typeof showPremiumModal === 'function') showPremiumModal();
