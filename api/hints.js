@@ -17,16 +17,34 @@ export default async function handler(req, res) {
   }
 
   const prompt = PROMPT_PREFIX + `Palabras: ${words.join(', ')}`;
-  const body = {
-    model: 'Qwen/Qwen3-4B',
-    messages: [{ role: 'user', content: prompt }],
-    max_tokens: 1024,
-    temperature: 0.5,
-  };
-
+  const messages = [{ role: 'user', content: prompt }];
   const bytezKey = process.env.BYTEZ_API_KEY?.trim();
   const openaiKey = process.env.OPENAI_KEY?.trim();
 
+  // 1) Bytez + gpt-4o-mini (necesita BYTEZ_API_KEY + OPENAI_KEY como provider-key)
+  if (bytezKey && openaiKey) {
+    const bytezRes = await fetch('https://api.bytez.com/models/v2/openai/v1/chat/completions', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': bytezKey,
+        'provider-key': openaiKey,
+      },
+      body: JSON.stringify({
+        model: 'openai/gpt-4o-mini',
+        messages,
+        max_tokens: 1024,
+        temperature: 0.5,
+      }),
+    });
+    if (bytezRes.ok) {
+      const data = await bytezRes.json();
+      return res.status(200).json(data);
+    }
+    console.error('[hints] Bytez gpt-4o-mini error:', bytezRes.status, await bytezRes.text());
+  }
+
+  // 2) Solo Bytez → modelo open-source (Qwen)
   if (bytezKey) {
     const bytezRes = await fetch('https://api.bytez.com/models/v2/openai/v1/chat/completions', {
       method: 'POST',
@@ -34,16 +52,21 @@ export default async function handler(req, res) {
         'Content-Type': 'application/json',
         'Authorization': bytezKey,
       },
-      body: JSON.stringify(body),
+      body: JSON.stringify({
+        model: 'Qwen/Qwen3-4B',
+        messages,
+        max_tokens: 1024,
+        temperature: 0.5,
+      }),
     });
     if (bytezRes.ok) {
       const data = await bytezRes.json();
       return res.status(200).json(data);
     }
-    const err = await bytezRes.text();
-    console.error('[hints] Bytez error:', bytezRes.status, err);
+    console.error('[hints] Bytez Qwen error:', bytezRes.status, await bytezRes.text());
   }
 
+  // 3) Solo OpenAI directo
   if (openaiKey) {
     const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
       method: 'POST',
@@ -53,7 +76,7 @@ export default async function handler(req, res) {
       },
       body: JSON.stringify({
         model: 'gpt-4o-mini',
-        messages: [{ role: 'user', content: prompt }],
+        messages,
       }),
     });
     if (openaiRes.ok) {
