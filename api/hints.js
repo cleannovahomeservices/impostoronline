@@ -16,79 +16,35 @@ export default async function handler(req, res) {
     return res.status(400).json({ error: 'words array is required' });
   }
 
-  const prompt = PROMPT_PREFIX + `Palabras: ${words.join(', ')}`;
-  const messages = [{ role: 'user', content: prompt }];
-  const bytezKey = process.env.BYTEZ_API_KEY?.trim();
   const openaiKey = process.env.OPENAI_KEY?.trim();
-
-  // 1) Bytez + gpt-4o-mini (necesita BYTEZ_API_KEY + OPENAI_KEY como provider-key)
-  if (bytezKey && openaiKey) {
-    const bytezRes = await fetch('https://api.bytez.com/models/v2/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': bytezKey,
-        'provider-key': openaiKey,
-      },
-      body: JSON.stringify({
-        model: 'openai/gpt-4o-mini',
-        messages,
-        max_tokens: 1024,
-        temperature: 0.5,
-      }),
+  if (!openaiKey) {
+    return res.status(502).json({
+      error: 'No AI provider configured',
+      detail: 'Set OPENAI_KEY in the environment.',
     });
-    if (bytezRes.ok) {
-      const data = await bytezRes.json();
-      return res.status(200).json(data);
-    }
-    console.error('[hints] Bytez gpt-4o-mini error:', bytezRes.status, await bytezRes.text());
   }
 
-  // 2) Solo Bytez → modelo open-source (Qwen)
-  if (bytezKey) {
-    const bytezRes = await fetch('https://api.bytez.com/models/v2/openai/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': bytezKey,
-      },
-      body: JSON.stringify({
-        model: 'Qwen/Qwen3-4B',
-        messages,
-        max_tokens: 1024,
-        temperature: 0.5,
-      }),
-    });
-    if (bytezRes.ok) {
-      const data = await bytezRes.json();
-      return res.status(200).json(data);
-    }
-    console.error('[hints] Bytez Qwen error:', bytezRes.status, await bytezRes.text());
-  }
+  const prompt = PROMPT_PREFIX + `Palabras: ${words.join(', ')}`;
 
-  // 3) Solo OpenAI directo
-  if (openaiKey) {
-    const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${openaiKey}`,
-      },
-      body: JSON.stringify({
-        model: 'gpt-4o-mini',
-        messages,
-      }),
-    });
-    if (openaiRes.ok) {
-      const data = await openaiRes.json();
-      return res.status(200).json(data);
-    }
+  const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      'Authorization': `Bearer ${openaiKey}`,
+    },
+    body: JSON.stringify({
+      model: 'gpt-4o-mini',
+      messages: [{ role: 'user', content: prompt }],
+      max_tokens: 1024,
+      temperature: 0.5,
+    }),
+  });
+
+  if (!openaiRes.ok) {
     const err = await openaiRes.text();
     return res.status(502).json({ error: `OpenAI error: ${openaiRes.status}`, detail: err });
   }
 
-  return res.status(502).json({
-    error: 'No AI provider configured',
-    detail: 'Set BYTEZ_API_KEY or OPENAI_KEY in the environment.',
-  });
+  const data = await openaiRes.json();
+  return res.status(200).json(data);
 }

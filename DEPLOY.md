@@ -11,14 +11,14 @@ cp .env.example .env
 ```
 En `.env` añade al menos:
 ```
-BYTEZ_API_KEY=tu_key_de_bytez
+OPENAI_KEY=tu_key_de_openai
 ```
-(Obtén la key en https://bytez.com/api)
+(Obtén la key en https://platform.openai.com/api-keys)
 
 ### Vercel
 1. Proyecto → **Settings** → **Environment Variables**
-2. Añade `BYTEZ_API_KEY` con valor `714461e2ec1aead0a43e3ebcc1208ebd` (o la key que uses)
+2. Añade `OPENAI_KEY` con el valor de tu API key de OpenAI
 3. Marca **Production**, **Preview**, **Development** si quieres que aplique en todos los entornos
 4. Guarda y redeploy si ya tenías el proyecto desplegado
 
-Con eso las pistas del juego usarán Bytez (modelo open-source) en producción.
+Con eso las pistas del juego usarán **gpt-4o-mini** en producción.
