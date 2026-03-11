@@ -7,6 +7,24 @@ const PROMPT_PREFIX = (
 );
 
 export default async function handler(req, res) {
+  // CORS: permitir llamadas desde la web y la app (Capacitor)
+  const allowedOrigins = [
+    'https://impostor.click',
+    'capacitor://localhost',
+    'http://localhost',
+  ];
+  const origin = req.headers.origin;
+  if (origin && allowedOrigins.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin);
+  }
+  res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
+
+  // Responder preflight CORS
+  if (req.method === 'OPTIONS') {
+    return res.status(200).end();
+  }
+
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
@@ -42,7 +60,9 @@ export default async function handler(req, res) {
 
   if (!openaiRes.ok) {
     const err = await openaiRes.text();
-    return res.status(502).json({ error: `OpenAI error: ${openaiRes.status}`, detail: err });
+    return res
+      .status(502)
+      .json({ error: `OpenAI error: ${openaiRes.status}`, detail: err });
   }
 
   const data = await openaiRes.json();
