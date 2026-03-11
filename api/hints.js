@@ -7,33 +7,28 @@ const PROMPT_PREFIX = (
 );
 
 export default async function handler(req, res) {
-  // CORS: permitir llamadas desde la web y la app (Capacitor)
-  const allowedOrigins = [
-    'https://impostor.click',
-    'capacitor://localhost',
-    'http://localhost',
-  ];
-  const origin = req.headers.origin;
-  if (origin && allowedOrigins.includes(origin)) {
-    res.setHeader('Access-Control-Allow-Origin', origin);
-  }
+  // CORS: permitir cualquier origen (para que funcione web + app)
+  res.setHeader('Access-Control-Allow-Origin', '*');
   res.setHeader('Access-Control-Allow-Methods', 'POST,OPTIONS');
   res.setHeader('Access-Control-Allow-Headers', 'Content-Type');
 
-  // Responder preflight CORS
+  // Peticiones preflight (antes del POST real)
   if (req.method === 'OPTIONS') {
     return res.status(200).end();
   }
 
+  // Solo aceptamos POST
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Method not allowed' });
   }
 
+  // Validar body
   const { words } = req.body;
   if (!words || !Array.isArray(words) || words.length === 0) {
     return res.status(400).json({ error: 'words array is required' });
   }
 
+  // Comprobar que tenemos la clave de OpenAI
   const openaiKey = process.env.OPENAI_KEY?.trim();
   if (!openaiKey) {
     return res.status(502).json({
@@ -42,8 +37,10 @@ export default async function handler(req, res) {
     });
   }
 
+  // Crear el prompt
   const prompt = PROMPT_PREFIX + `Palabras: ${words.join(', ')}`;
 
+  // Llamar a OpenAI
   const openaiRes = await fetch('https://api.openai.com/v1/chat/completions', {
     method: 'POST',
     headers: {
@@ -58,6 +55,7 @@ export default async function handler(req, res) {
     }),
   });
 
+  // Comprobar respuesta de OpenAI
   if (!openaiRes.ok) {
     const err = await openaiRes.text();
     return res
@@ -65,6 +63,7 @@ export default async function handler(req, res) {
       .json({ error: `OpenAI error: ${openaiRes.status}`, detail: err });
   }
 
+  // Devolver el JSON tal cual a la app
   const data = await openaiRes.json();
   return res.status(200).json(data);
 }
